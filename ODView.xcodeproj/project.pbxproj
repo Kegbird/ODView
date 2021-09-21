@@ -7,11 +7,13 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		702CDBB526F7778E0046972D /* BoundingBoxView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 702CDBB426F7778E0046972D /* BoundingBoxView.swift */; };
+		702CDBB726F786850046972D /* MobileNetV2_SSDLite.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 702CDBB626F786850046972D /* MobileNetV2_SSDLite.mlmodel */; };
 		702EAB8726E8B95900287B1B /* Obstacle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 702EAB8626E8B95900287B1B /* Obstacle.swift */; };
 		70407F5B26DFCC70008116F5 /* YOLOv3.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 70407F5A26DFCC70008116F5 /* YOLOv3.mlmodel */; };
-		70407F5D26DFE6CE008116F5 /* MobileNetV2.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 70407F5C26DFE6CE008116F5 /* MobileNetV2.mlmodel */; };
+		7079F9CD26F4DF7600784ABE /* ObjectDetector.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 7079F9CC26F4DF7600784ABE /* ObjectDetector.mlmodel */; };
 		70A7C0C826EB50ED0000257C /* YOLOv3Int8LUT.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 70A7C0C726EB50ED0000257C /* YOLOv3Int8LUT.mlmodel */; };
-		70AE74C826E7C63300011590 /* yolov5s.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 70AE74C726E7C63300011590 /* yolov5s.mlmodel */; };
+		70DFD89826F9C2DF00462DC7 /* Detector.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 70DFD89726F9C2DF00462DC7 /* Detector.mlmodel */; };
 		70ED4C6326CFA083006173D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70ED4C6226CFA083006173D9 /* AppDelegate.swift */; };
 		70ED4C6526CFA083006173D9 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70ED4C6426CFA083006173D9 /* SceneDelegate.swift */; };
 		70ED4C6726CFA083006173D9 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70ED4C6626CFA083006173D9 /* ViewController.swift */; };
@@ -40,11 +42,13 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		702CDBB426F7778E0046972D /* BoundingBoxView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BoundingBoxView.swift; sourceTree = "<group>"; };
+		702CDBB626F786850046972D /* MobileNetV2_SSDLite.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = MobileNetV2_SSDLite.mlmodel; sourceTree = "<group>"; };
 		702EAB8626E8B95900287B1B /* Obstacle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Obstacle.swift; sourceTree = "<group>"; };
 		70407F5A26DFCC70008116F5 /* YOLOv3.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = YOLOv3.mlmodel; sourceTree = "<group>"; };
-		70407F5C26DFE6CE008116F5 /* MobileNetV2.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = MobileNetV2.mlmodel; sourceTree = "<group>"; };
+		7079F9CC26F4DF7600784ABE /* ObjectDetector.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = ObjectDetector.mlmodel; sourceTree = "<group>"; };
 		70A7C0C726EB50ED0000257C /* YOLOv3Int8LUT.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = YOLOv3Int8LUT.mlmodel; sourceTree = "<group>"; };
-		70AE74C726E7C63300011590 /* yolov5s.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = yolov5s.mlmodel; sourceTree = "<group>"; };
+		70DFD89726F9C2DF00462DC7 /* Detector.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = Detector.mlmodel; sourceTree = "<group>"; };
 		70ED4C5F26CFA083006173D9 /* ODView.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ODView.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		70ED4C6226CFA083006173D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		70ED4C6426CFA083006173D9 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -109,16 +113,18 @@
 		70ED4C6126CFA083006173D9 /* ODView */ = {
 			isa = PBXGroup;
 			children = (
+				702CDBB626F786850046972D /* MobileNetV2_SSDLite.mlmodel */,
 				70ED4C6226CFA083006173D9 /* AppDelegate.swift */,
+				702CDBB426F7778E0046972D /* BoundingBoxView.swift */,
 				70ED4C6426CFA083006173D9 /* SceneDelegate.swift */,
 				70ED4C6626CFA083006173D9 /* ViewController.swift */,
+				70DFD89726F9C2DF00462DC7 /* Detector.mlmodel */,
+				7079F9CC26F4DF7600784ABE /* ObjectDetector.mlmodel */,
 				70ED4C6826CFA083006173D9 /* Main.storyboard */,
 				70ED4C6B26CFA085006173D9 /* Assets.xcassets */,
 				70ED4C6D26CFA085006173D9 /* LaunchScreen.storyboard */,
-				70AE74C726E7C63300011590 /* yolov5s.mlmodel */,
 				70ED4C7026CFA085006173D9 /* Info.plist */,
 				70A7C0C726EB50ED0000257C /* YOLOv3Int8LUT.mlmodel */,
-				70407F5C26DFE6CE008116F5 /* MobileNetV2.mlmodel */,
 				70407F5A26DFCC70008116F5 /* YOLOv3.mlmodel */,
 				702EAB8626E8B95900287B1B /* Obstacle.swift */,
 			);
@@ -273,14 +279,16 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				702CDBB726F786850046972D /* MobileNetV2_SSDLite.mlmodel in Sources */,
 				702EAB8726E8B95900287B1B /* Obstacle.swift in Sources */,
 				70A7C0C826EB50ED0000257C /* YOLOv3Int8LUT.mlmodel in Sources */,
-				70407F5D26DFE6CE008116F5 /* MobileNetV2.mlmodel in Sources */,
+				70DFD89826F9C2DF00462DC7 /* Detector.mlmodel in Sources */,
 				70407F5B26DFCC70008116F5 /* YOLOv3.mlmodel in Sources */,
 				70ED4C6726CFA083006173D9 /* ViewController.swift in Sources */,
 				70ED4C6326CFA083006173D9 /* AppDelegate.swift in Sources */,
-				70AE74C826E7C63300011590 /* yolov5s.mlmodel in Sources */,
 				70ED4C6526CFA083006173D9 /* SceneDelegate.swift in Sources */,
+				7079F9CD26F4DF7600784ABE /* ObjectDetector.mlmodel in Sources */,
+				702CDBB526F7778E0046972D /* BoundingBoxView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
