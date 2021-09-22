@@ -64,15 +64,6 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         let configuration = ARWorldTrackingConfiguration()
-        
-        let frame=CGRect(x:arscnView.bounds.width/3, y:0, width: arscnView.bounds.width/3, height: arscnView.bounds.height)
-        let path = UIBezierPath(rect: frame)
-        let middle=CAShapeLayer()
-        middle.path=path.cgPath
-        middle.fillColor = UIColor.clear.cgColor
-        middle.strokeColor = UIColor.green.cgColor
-        middle.lineWidth = 2
-        arscnView.layer.addSublayer(middle)
         arscnView.session.run(configuration)
     }
     
@@ -116,11 +107,6 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         }
     }
     
-    func deleteAllAnchors()
-    {
-        //arscnView.scene.rootNode.enumerateChildNodes({(node, stop) in node.removeFromParentNode()})
-    }
-    
     func distance(a: SCNVector3, b: SCNVector3) -> Float
     {
         return sqrt(pow(a.x-b.x, 2)+pow(a.y-b.y, 2)+pow(a.z+b.z, 2))
@@ -162,10 +148,6 @@ class ViewController: UIViewController, ARSCNViewDelegate {
                     minDistance=distance
                     closestPoint=p
                 }
-                /*let sphere = SCNNode(geometry: SCNSphere(radius: 0.001))
-                sphere.geometry?.firstMaterial?.diffuse.contents = UIColor.purple
-                sphere.position=SCNVector3(point)
-                self.arscnView.scene.rootNode.addChildNode(sphere)*/
             }
             
         }
@@ -180,53 +162,18 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         {
             guard let predictions = request.results as? [VNRecognizedObjectObservation] else { return }
             
-            self.deleteAllAnchors()
-            
             let points=frame.rawFeaturePoints
             
             for i in 0..<self.boundingBoxViews.count {
                 if i < predictions.count
                 {
                     let prediction = predictions[i]
-                    
-                    /*
-                     The predicted bounding box is in normalized image coordinates, with
-                     the origin in the lower-left corner.
-                     
-                     Scale the bounding box to the coordinate system of the video preview,
-                     which is as wide as the screen and has a 16:9 aspect ratio. The video
-                     preview also may be letterboxed at the top and bottom.
-                     
-                     Based on code from https://github.com/Willjay90/AppleFaceDetection
-                     
-                     NOTE: If you use a different .imageCropAndScaleOption, or a different
-                     video resolution, then you also need to change the math here!
-                     */
-                    
-                    // Get the affine transform to convert between normalized image coordinates and view coordinates
-                    /*let fromCameraImageToViewTransform = frame.displayTransform(for: .portrait, viewportSize: self.arscnView.currentViewport.size)
-                     // The observation's bounding box in normalized image coordinates
-                     let boundingBox = prediction.boundingBox
-                     // Transform the latter into normalized view coordinates
-                     let viewNormalizedBoundingBox = boundingBox.applying(fromCameraImageToViewTransform)
-                     // The affine transform for view coordinates
-                     let t = CGAffineTransform(scaleX: self.arscnView.currentViewport.size.width, y: self.arscnView.currentViewport.size.height)
-                     // Scale up to view coordinates
-                     let rect = viewNormalizedBoundingBox.applying(t)*/
-                    
-                    let width = self.arscnView.bounds.width
-                    let height = self.arscnView.bounds.height
-                    
-                    //Bounding box origin flip
-                    var rect=prediction.boundingBox
-                    
-                    let viewTransform = frame.displayTransform(for: .portrait, viewportSize: self.arscnView.bounds.size)
-                    
-                    rect = rect.applying(viewTransform)
-                    
-                    rect = rect.applying(CGAffineTransform(scaleX: width, y: height))
-                    
-                    rect = CGRect(x: self.arscnView.bounds.width-rect.origin.x-rect.width, y: rect.origin.y, width: rect.width, height: rect.height)
+                    let width = view.bounds.width
+                    let height = width * 16 / 9
+                    let offsetY = (view.bounds.height - height) / 2
+                    let scale = CGAffineTransform.identity.scaledBy(x: width, y: height)
+                    let transform = CGAffineTransform(scaleX: 1, y: -1).translatedBy(x: 0, y: -height - offsetY)
+                    let rect = prediction.boundingBox.applying(scale).applying(transform)
                     
                     let currentPosition=SCNVector3(frame.camera.transform.columns.3.x,
                                                    frame.camera.transform.columns.3.y,
@@ -274,7 +221,7 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     {
         let pixelBuffer = frame.capturedImage
         self.processing=true
-        let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: .up, options: [:])
+        let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: .right, options: [:])
         
         queue.async
         {
@@ -289,10 +236,10 @@ class ViewController: UIViewController, ARSCNViewDelegate {
             }
             
             self.processing=false
-            //let end=DispatchTime.now()
-            //let nanoTime = end.uptimeNanoseconds - self.lastCalculus.uptimeNanoseconds
-            //let timeInterval = Double(nanoTime) / 1_000_000_000
-            //print("Time vision computation:",timeInterval,"s")
+            let end=DispatchTime.now()
+            let nanoTime = end.uptimeNanoseconds - self.lastCalculus.uptimeNanoseconds
+            let timeInterval = Double(nanoTime) / 1_000_000_000
+            print("Time vision computation:",timeInterval,"s")
         }
     }
     
