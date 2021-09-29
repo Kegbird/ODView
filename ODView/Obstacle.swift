@@ -10,42 +10,72 @@ import ARKit
 
 class Obstacle
 {
-    private var id : UInt64
-    private var label : String
-    private var currentClosestPoint : SCNVector3
-    private var currentClosestPointId : UInt64
-    private var velocity : Float
+    public var label : String
+    private var boundingBox : CGRect
+    private var closestPoint : SCNVector3?
+    private var relativePosition : String
+    private var distance : Float?
+    private var speed : Float?
     
-    init(id: UInt64, label: String, currentClosestPoint: SCNVector3, currentClosestPointId: UInt64) {
-        self.id=id
+    init(label: String, boundingBox: CGRect, closestPoint: SCNVector3?, relativePosition: String, distance: Float?) {
         self.label=label
-        self.currentClosestPoint=currentClosestPoint
-        self.currentClosestPointId=currentClosestPointId
-        self.velocity=0.0
+        self.boundingBox=boundingBox
+        self.closestPoint=closestPoint
+        self.relativePosition=relativePosition
+        self.distance=distance
     }
     
-    public func getIdentifier() -> UInt64
+    public func intersect(otherLabel: String, otherBoundingBox : CGRect) -> Bool
     {
-        return self.id
+        if(self.label==otherLabel)
+        {
+            return self.boundingBox.intersects(otherBoundingBox)
+        }
+        return false
     }
     
-    private func updateCurrentPosition(newClosestPoint : SCNVector3)
+    public func evaluateOverlap(otherBoundingBox : CGRect) -> Float
     {
-        self.currentClosestPoint=newClosestPoint
+        let overlappingArea=self.boundingBox.intersection(otherBoundingBox)
+        return Float(overlappingArea.width*overlappingArea.height)
     }
     
-    func calculateVelocity(newCLosestPoint : SCNVector3, deltaTime: Float) -> Float
+    public func updateDistance(distance : Float)
     {
-        let oldClosestPoint=self.currentClosestPoint
-        updateCurrentPosition(newClosestPoint: newCLosestPoint)
-        
-        if(deltaTime==0.0) { return -1.0 }
-        
-        let velocityVector = SCNVector3(self.currentClosestPoint.x-oldClosestPoint.x,
-                                            self.currentClosestPoint.y-oldClosestPoint.x,
-                                            self.currentClosestPoint.z-oldClosestPoint.z)
-        
+        self.distance=distance
+    }
+    
+    public func updateBoundingBox(newBoundingBox : CGRect)
+    {
+        self.boundingBox=newBoundingBox
+    }
+    
+    public func updateClosestPoint(closestPoint : SCNVector3?)
+    {
+        self.closestPoint=closestPoint
+    }
+    
+    public func updateRelativePosition(relativePosition : String)
+    {
+        self.relativePosition=relativePosition
+    }
+    
+    public func evaluateSpeed(newClosestPoint : SCNVector3, deltaTime: Float)
+    {
+        if(deltaTime==0.0 || self.closestPoint==nil)
+        {
+            self.speed=nil
+            return
+        }
+        let velocityVector = SCNVector3(newClosestPoint.x-closestPoint!.x,
+                                        newClosestPoint.y-closestPoint!.x,
+                                        newClosestPoint.z-closestPoint!.z)
         let velocityMagnitude = sqrt(pow(velocityVector.x, 2)+pow(velocityVector.y, 2)+pow(velocityVector.z, 2))
-        return velocityMagnitude/deltaTime
+        self.speed=velocityMagnitude/deltaTime
+    }
+    
+    public func getDescription() -> String
+    {
+        return String(format:"%@ %@ %f %f",label, relativePosition, distance ?? 0, speed ?? 0)
     }
 }

@@ -12,25 +12,39 @@ import Vision
 
 class ViewController: UIViewController, ARSCNViewDelegate {
     
-    private let minConfidence: Float = 0.80
+    private let minConfidence: Float = 0.70
+    
+    private let minTrackingConfidence : Float = 0.1
     
     var bufferSize: CGSize = .zero
     
     @IBOutlet weak var arscnView: ARSCNView!
     
+    @IBOutlet weak var infoLabel : UILabel!
+    
     private var processing : Bool = false
     
-    private var lastCalculus : DispatchTime!
+    private var begin : DispatchTime!
     
     let maxBoundingBoxViews = 10
     
     let screenSubdivisionFactor : Float = 1.0/3.0
+    
+    var visionUpdatePerSec = 0
+    
+    var offset = -20
+    
+    var stop = false
+    
+    var obstaclesList = [Obstacle]()
     
     var boundingBoxViews = [BoundingBoxView]()
     
     var colors: [String: UIColor] = [:]
     
     let coreMLModel = MobileNetV2_SSDLite()
+    
+    var lastVisionUpdate : DispatchTime?
     
     lazy var visionModel: VNCoreMLModel = {
         do {
@@ -52,19 +66,20 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         return request
     }()
     
-    private let queue = DispatchQueue.init(label: "vision-queue", qos: .userInitiated, attributes: [], autoreleaseFrequency: .workItem)
+    private let visionQueue = DispatchQueue.init(label: "com.apple.Vision", qos: .userInitiated)
     
     override func viewDidLoad() {
         super.viewDidLoad()
         setupAR()
         setupBoundingBoxViews()
-        visionModel.inputImageFeatureName="image"
+        self.lastVisionUpdate=DispatchTime.now()
     }
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         let configuration = ARWorldTrackingConfiguration()
         arscnView.session.run(configuration)
+        begin=DispatchTime.now()
     }
     
     override func viewWillDisappear(_ animated: Bool) {
@@ -79,8 +94,7 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     func setupAR()
     {
         arscnView.delegate=self
-        arscnView.showsStatistics=true
-        arscnView.debugOptions=[ARSCNDebugOptions.showFeaturePoints]
+        //arscnView.debugOptions=[ARSCNDebugOptions.showFeaturePoints]
     }
     
     func setupBoundingBoxViews()
@@ -91,15 +105,27 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         
         // The label names are stored inside the MLModel's metadata.
         guard let userDefined =
-        coreMLModel.model.modelDescription.metadata[MLModelMetadataKey.creatorDefinedKey] as? [String: String],
-         let allLabels = userDefined["classes"] else {
-         fatalError("Missing metadata")
-         }
+                coreMLModel.model.modelDescription.metadata[MLModelMetadataKey.creatorDefinedKey] as? [String: String],
+              let allLabels = userDefined["classes"] else {
+            fatalError("Missing metadata")
+        }
         
         let labels = allLabels.components(separatedBy: ",")
+        
+        /*let labels = ["person", "bicycle", "car", "motorcycle", "airplane", "bus",                  "train", "truck", "boat", "traffic light", "fire hydrant",
+         "stop sign", "parking meter", "bench", "bird", "cat", "dog", "horse", "sheep", "cow", "elephant", "bear", "zebra", "giraffe", "backpack", "umbrella", "handbag", "tie", "suitcase", "frisbee",
+         "skis", "snowboard", "sports ball", "kite", "baseball bat", "baseball glove", "skateboard", "surfboard",
+         "tennis racket", "bottle", "wine glass", "cup", "fork", "knife", "spoon", "bowl", "banana", "apple",
+         "sandwich", "orange", "broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair", "couch",
+         "potted plant", "bed", "dining table", "toilet", "tv", "laptop", "mouse", "remote", "keyboard", "cell phone",
+         "microwave", "oven", "toaster", "sink", "refrigerator", "book", "clock", "vase", "scissors", "teddy bear",
+         "hair drier", "toothbrush"]*/
         // Assign random colors to the classes.
         for label in labels {
-            colors[label] = UIColor.red
+            colors[label] = UIColor(red: CGFloat.random(in: 0...1),
+                                    green: CGFloat.random(in: 0...1),
+                                    blue: CGFloat.random(in: 0...1),
+                                    alpha: 0.5)
         }
         
         for box in self.boundingBoxViews {
@@ -159,61 +185,125 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     func drawVisionRequestResults(_ request: VNRequest, frame: ARFrame)
     {
         DispatchQueue.main.sync
-        {
+        { [weak self] in
             guard let predictions = request.results as? [VNRecognizedObjectObservation] else { return }
             
-            let points=frame.rawFeaturePoints
+            var obstacleUpdated : [Bool] = []
+            for _ in 0..<self!.obstaclesList.count
+            {
+                obstacleUpdated.append(false)
+            }
             
-            for i in 0..<self.boundingBoxViews.count {
-                if i < predictions.count
+            let width = view.bounds.width
+            let height = width * 16 / 9
+            let offsetY = (view.bounds.height - height) / 2
+            let scale = CGAffineTransform.identity.scaledBy(x: width, y: height)
+            let transform = CGAffineTransform(scaleX: 1, y: -1).translatedBy(x: 0, y: -height - offsetY - CGFloat(offset))
+            let deltaTime = (Float)(DispatchTime.now().uptimeNanoseconds-(self?.lastVisionUpdate!.uptimeNanoseconds)!)/1000000000.0
+            self?.lastVisionUpdate=DispatchTime.now()
+            
+            let points=frame.rawFeaturePoints
+            for i in 0..<self!.boundingBoxViews.count {
+                if i < predictions.count && predictions[i].confidence>self!.minConfidence
                 {
                     let prediction = predictions[i]
-                    let width = view.bounds.width
-                    let height = width * 16 / 9
-                    let offsetY = (view.bounds.height - height) / 2
-                    let scale = CGAffineTransform.identity.scaledBy(x: width, y: height)
-                    let transform = CGAffineTransform(scaleX: 1, y: -1).translatedBy(x: 0, y: -height - offsetY)
+                    let label = prediction.labels[0].identifier
+                    let confidence = prediction.labels[0].confidence
                     let rect = prediction.boundingBox.applying(scale).applying(transform)
-                    
                     let currentPosition=SCNVector3(frame.camera.transform.columns.3.x,
                                                    frame.camera.transform.columns.3.y,
                                                    frame.camera.transform.columns.3.z)
-                    
-                    let closestPoint=self.getObstacleClosestPoint(points: points, boundingBox: rect, frame: frame)
+                    let closestPoint=self!.getObstacleClosestPoint(points: points, boundingBox: rect, frame: frame)
                     
                     var distanceFromObstacle:Float!
                     
                     if((closestPoint) != nil)
                     {
-                        distanceFromObstacle = self.distance(a: closestPoint!, b: currentPosition)
+                        distanceFromObstacle = self!.distance(a: closestPoint!, b: currentPosition)
                     }
                     else
                     {
                         distanceFromObstacle = 0
                     }
                     
-                    let relativePosition = self.evaluateObstacleRelativePositionOnScreen(boundingBoxCenter: CGPoint(x: rect.midX, y: rect.midY))
+                    let relativePosition = self!.evaluateObstacleRelativePositionOnScreen(boundingBoxCenter: CGPoint(x: rect.midX, y: rect.midY))
                     
-                    let bestClass = prediction.labels[0].identifier
-                    let confidence = prediction.labels[0].confidence
-                    
-                    if(confidence<self.minConfidence)
+                    var maxOverlap : Float = 0.0
+                    var mostSimilar = -1
+                    for j in 0..<self!.obstaclesList.count
                     {
-                        self.boundingBoxViews[i].hide()
+                        let obstacle = self!.obstaclesList[j]
+                        if(obstacle.intersect(otherLabel: label, otherBoundingBox: prediction.boundingBox))
+                        {
+                            let overlap=obstacle.evaluateOverlap(otherBoundingBox: prediction.boundingBox)
+                            
+                            if(overlap>maxOverlap)
+                            {
+                                mostSimilar=j
+                                maxOverlap=overlap
+                            }
+                        }
+                    }
+                    
+                    var obstacle : Obstacle!
+                    
+                    if(mostSimilar>=0)
+                    {
+                        //Allora l'ostacolo rilevato era già stato rilevato
+                        print(label, "è già stato rilevato prima")
+                        self!.obstaclesList[mostSimilar].updateBoundingBox(newBoundingBox: prediction.boundingBox)
+                        
+                        if(closestPoint != nil)
+                        {
+                            self!.obstaclesList[mostSimilar].evaluateSpeed(newClosestPoint: closestPoint!, deltaTime: deltaTime)
+                            
+                            self!.obstaclesList[mostSimilar].updateClosestPoint(closestPoint: closestPoint)
+                            
+                            self!.obstaclesList[mostSimilar].updateDistance(distance: distanceFromObstacle)
+                        }
+                        
+                        self!.obstaclesList[mostSimilar].updateRelativePosition(relativePosition: relativePosition)
+                        obstacle=self!.obstaclesList[mostSimilar]
+                        obstacleUpdated[mostSimilar]=true
                     }
                     else
                     {
-                        let label = String(format: "%@ Confidence:%.1f \nDistance:%.3f \n Position:%@", bestClass.uppercased(), confidence * 100, distanceFromObstacle, relativePosition)
-                        let color = self.colors[bestClass] ?? UIColor.red
-                        self.boundingBoxViews[i].show(frame: rect, label: label, color: color)
-            
+                        //L'ostacolo rilevato è nuovo
+                        print(label, "è un nuovo ostacolo")
+                        obstacle = Obstacle(label: label, boundingBox: prediction.boundingBox, closestPoint: closestPoint, relativePosition: relativePosition,
+                            distance: distanceFromObstacle)
+                        
+                        if(closestPoint != nil)
+                        {
+                            obstacle.evaluateSpeed(newClosestPoint: closestPoint!, deltaTime: deltaTime)
+                        }
+                        
+                        self!.obstaclesList.append(obstacle)
+                        obstacleUpdated.append(true)
+                        //sonifyNewObstacle(obstacle: obstacle)
                     }
+                    
+                    let description = obstacle.getDescription()
+                    
+                    let color = UIColor(red: 1, green: 0, blue: 0, alpha: 0.5)
+                        self!.boundingBoxViews[i].show(frame: rect, label: description, color: color)
+                    
                 }
                 else
                 {
-                    self.boundingBoxViews[i].hide()
+                    self!.boundingBoxViews[i].hide()
                 }
             }
+            
+            for i in stride(from: self!.obstaclesList.count-1, to: -1, by: -1)
+            {
+                if(!obstacleUpdated[i])
+                {
+                    print("Removed ",obstaclesList[i].label)
+                    self!.obstaclesList.remove(at: i)
+                }
+            }
+            self?.visionUpdatePerSec+=1
         }
     }
     
@@ -223,23 +313,18 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         self.processing=true
         let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: .right, options: [:])
         
-        queue.async
-        {
+        visionQueue.async
+        { [weak self] in
             do
             {
-                defer {self.processing=false}
-                try handler.perform([self.visionRequest])
+                defer {self!.processing=false}
+                try handler.perform([self!.visionRequest])
             }
             catch
             {
                 print(error)
             }
-            
-            self.processing=false
-            let end=DispatchTime.now()
-            let nanoTime = end.uptimeNanoseconds - self.lastCalculus.uptimeNanoseconds
-            let timeInterval = Double(nanoTime) / 1_000_000_000
-            print("Time vision computation:",timeInterval,"s")
+            self!.processing=false
         }
     }
     
@@ -249,11 +334,22 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         guard (frame != nil) else {
             return
         }
-        if(self.processing)
+        
+        let nanoTime = DispatchTime.now().uptimeNanoseconds - self.begin.uptimeNanoseconds
+        let timeInterval = Double(nanoTime) / 1_000_000_000
+        
+        if(timeInterval>=1)
         {
-            return
+            DispatchQueue.main.async
+            { [weak self] in
+                self!.infoLabel.text=String(format:"Update x sec: %d",self!.visionUpdatePerSec)
+                self!.visionUpdatePerSec=0
+            }
+            begin=DispatchTime.now()
         }
-        lastCalculus=DispatchTime.now()
+        
+        if(self.processing) { return }
+        
         self.runObjectDetectionOnCurrentFrame(frame: frame!)
     }
 }
