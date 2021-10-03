@@ -14,15 +14,95 @@ class Obstacle
     private var boundingBox : CGRect
     private var closestPoint : SCNVector3?
     private var relativePosition : String
-    private var distance : Float?
+    private var distanceFromUser : Float
     private var speed : Float?
+    private var boundingBoxView : BoundingBoxView
     
-    init(label: String, boundingBox: CGRect, closestPoint: SCNVector3?, relativePosition: String, distance: Float?) {
+    init(label: String,
+         boundingBox: CGRect)
+    {
         self.label=label
         self.boundingBox=boundingBox
+        self.relativePosition=""
+        self.distanceFromUser=0
+        self.boundingBoxView=BoundingBoxView()
+    }
+    
+    public func addBoundingBoxViewToLayer(parent : CALayer)
+    {
+        self.boundingBoxView.addToLayer(parent)
+    }
+    
+    public func updateBoundingBox(boundingBox: CGRect)
+    {
+        self.boundingBox=boundingBox
+        self.boundingBoxView.updateShape(frame: boundingBox, label: getDescription())
+    }
+    
+    public func showBoundingBoxView()
+    {
+        self.boundingBoxView.show(frame: boundingBox, label: getDescription(), color: UIColor.red)
+    }
+    
+    public func removeObstacleBoundingBox()
+    {
+        self.boundingBoxView.removeFromLayer()
+    }
+    
+    public func evaluateRelativePosition(view: UIView)
+    {
+        let boundingBoxCenter = CGPoint(x: boundingBox.midX, y: boundingBox.midY)
+        
+        if(boundingBoxCenter.x<view.bounds.width/3)
+        {
+            self.relativePosition="Left"
+        }
+        else if(view.bounds.width/3<=boundingBoxCenter.x && boundingBoxCenter.x<2*view.bounds.width/3)
+        {
+            self.relativePosition="Middle"
+        }
+        else
+        {
+            self.relativePosition="Right"
+        }
+    }
+    
+    public func evaluateClosestPointAndDistance(points: ARPointCloud?, frame: ARFrame, viewport : CGRect)
+    {
+        if points == nil
+        {
+            self.closestPoint=nil
+            return
+        }
+        
+        var minDistance : Float = 100.0
+        let currentCameraPosition = SCNVector3(frame.camera.transform.columns.3.x, frame.camera.transform.columns.3.y, frame.camera.transform.columns.3.z)
+        var closestPoint : SCNVector3!
+        
+        print(points!.points.count)
+        for i in 0..<points!.points.count
+        {
+            let screenPoint=frame.camera.projectPoint(points!.points[i], orientation: UIInterfaceOrientation.portrait, viewportSize: viewport.size)
+            
+            if(boundingBox.contains(screenPoint))
+            {
+                let point = SCNVector3(points!.points[i].x, points!.points[i].y, points!.points[i].z)
+                let distance=SCNVector3.distance(startPoint: point, endPoint: currentCameraPosition)
+                if(minDistance>distance)
+                {
+                    minDistance=distance
+                    closestPoint=point
+                }
+            }
+        }
+        
+        if closestPoint==nil
+        {
+            self.closestPoint=nil
+            return
+        }
         self.closestPoint=closestPoint
-        self.relativePosition=relativePosition
-        self.distance=distance
+        self.distanceFromUser=SCNVector3.distance(startPoint: self.closestPoint!, endPoint: currentCameraPosition)
     }
     
     public func intersect(otherLabel: String, otherBoundingBox : CGRect) -> Bool
@@ -40,42 +120,29 @@ class Obstacle
         return Float(overlappingArea.width*overlappingArea.height)
     }
     
-    public func updateDistance(distance : Float)
+    public func updateParameters(boundingBox: CGRect, points: ARPointCloud?, frame: ARFrame, view: UIView, viewport: CGRect, deltaTime: Float)
     {
-        self.distance=distance
-    }
-    
-    public func updateBoundingBox(newBoundingBox : CGRect)
-    {
-        self.boundingBox=newBoundingBox
-    }
-    
-    public func updateClosestPoint(closestPoint : SCNVector3?)
-    {
-        self.closestPoint=closestPoint
-    }
-    
-    public func updateRelativePosition(relativePosition : String)
-    {
-        self.relativePosition=relativePosition
-    }
-    
-    public func evaluateSpeed(newClosestPoint : SCNVector3, deltaTime: Float)
-    {
-        if(deltaTime==0.0 || self.closestPoint==nil)
+        self.boundingBox=boundingBox
+        self.evaluateRelativePosition(view: view)
+        let oldClosestPoint = self.closestPoint
+        self.evaluateClosestPointAndDistance(points: points, frame: frame, viewport: viewport)
+        
+        if(oldClosestPoint == nil || self.closestPoint == nil)
         {
             self.speed=nil
-            return
         }
-        let velocityVector = SCNVector3(newClosestPoint.x-closestPoint!.x,
-                                        newClosestPoint.y-closestPoint!.x,
-                                        newClosestPoint.z-closestPoint!.z)
-        let velocityMagnitude = sqrt(pow(velocityVector.x, 2)+pow(velocityVector.y, 2)+pow(velocityVector.z, 2))
-        self.speed=velocityMagnitude/deltaTime
+        else
+        {
+            let velocityVector = SCNVector3(closestPoint!.x-oldClosestPoint!.x,
+                           closestPoint!.y-oldClosestPoint!.x,
+                           closestPoint!.z-oldClosestPoint!.z)
+            self.speed=velocityVector.magnitude()/deltaTime
+        }
+        self.boundingBoxView.updateShape(frame: boundingBox, label: getDescription())
     }
-    
+
     public func getDescription() -> String
     {
-        return String(format:"%@ %@ %f %f",label, relativePosition, distance ?? 0, speed ?? 0)
+        return String(format:"%@ %@ %.2f %.2f", self.label, self.relativePosition, self.distanceFromUser, self.speed ?? 0)
     }
 }
