@@ -8,14 +8,15 @@
 
 /* Begin PBXBuildFile section */
 		702CDBB526F7778E0046972D /* BoundingBoxView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 702CDBB426F7778E0046972D /* BoundingBoxView.swift */; };
-		702CDBB726F786850046972D /* MobileNetV2_SSDLite.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 702CDBB626F786850046972D /* MobileNetV2_SSDLite.mlmodel */; };
 		702EAB8726E8B95900287B1B /* Obstacle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 702EAB8626E8B95900287B1B /* Obstacle.swift */; };
-		70407F5B26DFCC70008116F5 /* YOLOv3.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 70407F5A26DFCC70008116F5 /* YOLOv3.mlmodel */; };
-		7079F9CD26F4DF7600784ABE /* ObjectDetector.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 7079F9CC26F4DF7600784ABE /* ObjectDetector.mlmodel */; };
-		70A7C0C826EB50ED0000257C /* YOLOv3Int8LUT.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 70A7C0C726EB50ED0000257C /* YOLOv3Int8LUT.mlmodel */; };
-		70DFD89826F9C2DF00462DC7 /* Detector.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 70DFD89726F9C2DF00462DC7 /* Detector.mlmodel */; };
+		70C70CB627063E0400ADCCAE /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70C70CB527063E0400ADCCAE /* Extensions.swift */; };
+		70C70CB827063FEC00ADCCAE /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70C70CB727063FEC00ADCCAE /* Constants.swift */; };
+		70D24B8C271080B1003F4329 /* Detector.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 70D24B87271080B1003F4329 /* Detector.mlmodel */; };
+		70D24B8D271080B1003F4329 /* MobileNetV2_SSDLite.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 70D24B88271080B1003F4329 /* MobileNetV2_SSDLite.mlmodel */; };
+		70D24B8E271080B1003F4329 /* yolo5s.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 70D24B89271080B1003F4329 /* yolo5s.mlmodel */; };
+		70D24B8F271080B1003F4329 /* YOLOv3Int8LUT.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 70D24B8A271080B1003F4329 /* YOLOv3Int8LUT.mlmodel */; };
+		70D24B90271080B1003F4329 /* ObjectDetector.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 70D24B8B271080B1003F4329 /* ObjectDetector.mlmodel */; };
 		70ED4C6326CFA083006173D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70ED4C6226CFA083006173D9 /* AppDelegate.swift */; };
-		70ED4C6526CFA083006173D9 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70ED4C6426CFA083006173D9 /* SceneDelegate.swift */; };
 		70ED4C6726CFA083006173D9 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70ED4C6626CFA083006173D9 /* ViewController.swift */; };
 		70ED4C6A26CFA083006173D9 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 70ED4C6826CFA083006173D9 /* Main.storyboard */; };
 		70ED4C6C26CFA085006173D9 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 70ED4C6B26CFA085006173D9 /* Assets.xcassets */; };
@@ -43,15 +44,16 @@
 
 /* Begin PBXFileReference section */
 		702CDBB426F7778E0046972D /* BoundingBoxView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BoundingBoxView.swift; sourceTree = "<group>"; };
-		702CDBB626F786850046972D /* MobileNetV2_SSDLite.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = MobileNetV2_SSDLite.mlmodel; sourceTree = "<group>"; };
 		702EAB8626E8B95900287B1B /* Obstacle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Obstacle.swift; sourceTree = "<group>"; };
-		70407F5A26DFCC70008116F5 /* YOLOv3.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = YOLOv3.mlmodel; sourceTree = "<group>"; };
-		7079F9CC26F4DF7600784ABE /* ObjectDetector.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = ObjectDetector.mlmodel; sourceTree = "<group>"; };
-		70A7C0C726EB50ED0000257C /* YOLOv3Int8LUT.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = YOLOv3Int8LUT.mlmodel; sourceTree = "<group>"; };
-		70DFD89726F9C2DF00462DC7 /* Detector.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = Detector.mlmodel; sourceTree = "<group>"; };
+		70C70CB527063E0400ADCCAE /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
+		70C70CB727063FEC00ADCCAE /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
+		70D24B87271080B1003F4329 /* Detector.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = Detector.mlmodel; sourceTree = "<group>"; };
+		70D24B88271080B1003F4329 /* MobileNetV2_SSDLite.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = MobileNetV2_SSDLite.mlmodel; sourceTree = "<group>"; };
+		70D24B89271080B1003F4329 /* yolo5s.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = yolo5s.mlmodel; sourceTree = "<group>"; };
+		70D24B8A271080B1003F4329 /* YOLOv3Int8LUT.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = YOLOv3Int8LUT.mlmodel; sourceTree = "<group>"; };
+		70D24B8B271080B1003F4329 /* ObjectDetector.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = ObjectDetector.mlmodel; sourceTree = "<group>"; };
 		70ED4C5F26CFA083006173D9 /* ODView.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ODView.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		70ED4C6226CFA083006173D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		70ED4C6426CFA083006173D9 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		70ED4C6626CFA083006173D9 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
 		70ED4C6926CFA083006173D9 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		70ED4C6B26CFA085006173D9 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -90,6 +92,18 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		70D24B862710808E003F4329 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				70D24B87271080B1003F4329 /* Detector.mlmodel */,
+				70D24B88271080B1003F4329 /* MobileNetV2_SSDLite.mlmodel */,
+				70D24B8B271080B1003F4329 /* ObjectDetector.mlmodel */,
+				70D24B89271080B1003F4329 /* yolo5s.mlmodel */,
+				70D24B8A271080B1003F4329 /* YOLOv3Int8LUT.mlmodel */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
 		70ED4C5626CFA083006173D9 = {
 			isa = PBXGroup;
 			children = (
@@ -113,20 +127,17 @@
 		70ED4C6126CFA083006173D9 /* ODView */ = {
 			isa = PBXGroup;
 			children = (
-				702CDBB626F786850046972D /* MobileNetV2_SSDLite.mlmodel */,
+				70D24B862710808E003F4329 /* Models */,
 				70ED4C6226CFA083006173D9 /* AppDelegate.swift */,
 				702CDBB426F7778E0046972D /* BoundingBoxView.swift */,
-				70ED4C6426CFA083006173D9 /* SceneDelegate.swift */,
 				70ED4C6626CFA083006173D9 /* ViewController.swift */,
-				70DFD89726F9C2DF00462DC7 /* Detector.mlmodel */,
-				7079F9CC26F4DF7600784ABE /* ObjectDetector.mlmodel */,
 				70ED4C6826CFA083006173D9 /* Main.storyboard */,
 				70ED4C6B26CFA085006173D9 /* Assets.xcassets */,
 				70ED4C6D26CFA085006173D9 /* LaunchScreen.storyboard */,
 				70ED4C7026CFA085006173D9 /* Info.plist */,
-				70A7C0C726EB50ED0000257C /* YOLOv3Int8LUT.mlmodel */,
-				70407F5A26DFCC70008116F5 /* YOLOv3.mlmodel */,
 				702EAB8626E8B95900287B1B /* Obstacle.swift */,
+				70C70CB527063E0400ADCCAE /* Extensions.swift */,
+				70C70CB727063FEC00ADCCAE /* Constants.swift */,
 			);
 			path = ODView;
 			sourceTree = "<group>";
@@ -165,6 +176,8 @@
 			dependencies = (
 			);
 			name = ODView;
+			packageProductDependencies = (
+			);
 			productName = ODView;
 			productReference = 70ED4C5F26CFA083006173D9 /* ODView.app */;
 			productType = "com.apple.product-type.application";
@@ -236,6 +249,8 @@
 				Base,
 			);
 			mainGroup = 70ED4C5626CFA083006173D9;
+			packageReferences = (
+			);
 			productRefGroup = 70ED4C6026CFA083006173D9 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -279,16 +294,17 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				702CDBB726F786850046972D /* MobileNetV2_SSDLite.mlmodel in Sources */,
 				702EAB8726E8B95900287B1B /* Obstacle.swift in Sources */,
-				70A7C0C826EB50ED0000257C /* YOLOv3Int8LUT.mlmodel in Sources */,
-				70DFD89826F9C2DF00462DC7 /* Detector.mlmodel in Sources */,
-				70407F5B26DFCC70008116F5 /* YOLOv3.mlmodel in Sources */,
+				70D24B8F271080B1003F4329 /* YOLOv3Int8LUT.mlmodel in Sources */,
+				70D24B8D271080B1003F4329 /* MobileNetV2_SSDLite.mlmodel in Sources */,
+				70D24B8C271080B1003F4329 /* Detector.mlmodel in Sources */,
 				70ED4C6726CFA083006173D9 /* ViewController.swift in Sources */,
 				70ED4C6326CFA083006173D9 /* AppDelegate.swift in Sources */,
-				70ED4C6526CFA083006173D9 /* SceneDelegate.swift in Sources */,
-				7079F9CD26F4DF7600784ABE /* ObjectDetector.mlmodel in Sources */,
+				70C70CB627063E0400ADCCAE /* Extensions.swift in Sources */,
 				702CDBB526F7778E0046972D /* BoundingBoxView.swift in Sources */,
+				70D24B8E271080B1003F4329 /* yolo5s.mlmodel in Sources */,
+				70C70CB827063FEC00ADCCAE /* Constants.swift in Sources */,
+				70D24B90271080B1003F4329 /* ObjectDetector.mlmodel in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

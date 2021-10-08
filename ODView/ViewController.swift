@@ -59,7 +59,6 @@ class ViewController: UIViewController, ARSCNViewDelegate
         begin=DispatchTime.now()
         self.setUpConstants()
         self.lastVisionUpdate=DispatchTime.now()
-        
     }
     
     override func viewWillDisappear(_ animated: Bool) {
@@ -85,16 +84,16 @@ class ViewController: UIViewController, ARSCNViewDelegate
         guard let predictions = request.results as? [VNRecognizedObjectObservation] else { return }
         
         DispatchQueue.main.async
-        {
+        { [weak self] in
             let points=frame.rawFeaturePoints
             var obstacleUpdated : [Bool] = []
-            for _ in 0..<self.obstacles.count
+            for _ in 0..<(self?.obstacles.count)!
             {
                 obstacleUpdated.append(false)
             }
             
-            let deltaTime = (Float)(DispatchTime.now().uptimeNanoseconds-(self.lastVisionUpdate!.uptimeNanoseconds))/1000000000.0
-            self.lastVisionUpdate=DispatchTime.now()
+            let deltaTime = (Float)(DispatchTime.now().uptimeNanoseconds-self!.lastVisionUpdate!.uptimeNanoseconds)/1000000000.0
+            self?.lastVisionUpdate=DispatchTime.now()
             
             for i in 0..<predictions.count
             {
@@ -106,9 +105,9 @@ class ViewController: UIViewController, ARSCNViewDelegate
                     let adjustedBoundingBox = prediction.boundingBox.applying(Constants.SCALE).applying(Constants.TRANSFORM)
                     var maxOverlap : Float = 0.0
                     var mostSimilar = -1
-                    for j in 0..<self.obstacles.count
+                    for j in 0..<self!.obstacles.count
                     {
-                        let obstacle = self.obstacles[j]
+                        let obstacle = self!.obstacles[j]
                         if(obstacle.intersect(otherLabel: label, otherBoundingBox: adjustedBoundingBox))
                         {
                             let overlap=obstacle.evaluateOverlap(otherBoundingBox: adjustedBoundingBox)
@@ -124,31 +123,34 @@ class ViewController: UIViewController, ARSCNViewDelegate
                     {
                         print(label, "already known")
                         obstacleUpdated[mostSimilar]=true
-                        self.obstacles[mostSimilar].updateParameters(boundingBox: adjustedBoundingBox, points: points, frame: frame, view: self.arscnView, viewport: self.arscnView.currentViewport, deltaTime: deltaTime)
+                        self!.obstacles[mostSimilar].updateParameters(boundingBox: adjustedBoundingBox, points: points, frame: frame, view: self!.arscnView, viewport: self!.arscnView.currentViewport, deltaTime: deltaTime)
                         continue
                     }
+                    
                     print(label, "is new")
                     obstacleUpdated.append(true)
                     let obstacle = Obstacle(label: label,
                                             boundingBox: adjustedBoundingBox)
-                    obstacle.evaluateRelativePosition(view: self.arscnView)
-                    obstacle.evaluateClosestPointAndDistance(points: points, frame: frame, viewport: self.arscnView.currentViewport)
-                    obstacle.addBoundingBoxViewToLayer(parent:self.arscnView.layer)
+                    obstacle.evaluateRelativePosition(view: self!.arscnView)
+                    obstacle.evaluateClosestPointAndDistance(points: points, frame: frame, viewport: self!.arscnView.currentViewport)
+                    obstacle.addBoundingBoxViewToLayer(parent:self!.arscnView.layer)
                     obstacle.showBoundingBoxView()
-                    self.obstacles.append(obstacle)
+                    obstacle.addObstacleNode(view: self!.arscnView)
+                    self!.obstacles.append(obstacle)
                 }
             }
             
-            for i in stride(from: self.obstacles.count-1, to: -1, by: -1)
+            for i in stride(from: self!.obstacles.count-1, to: -1, by: -1)
             {
                 if(!obstacleUpdated[i])
                 {
-                    print("Removed ", self.obstacles[i].label)
-                    self.obstacles[i].removeObstacleBoundingBox()
-                    self.obstacles.remove(at: i)
+                    print("Removed ", self!.obstacles[i].label)
+                    self!.obstacles[i].removeObstacleNode(view: self!.arscnView)
+                    self!.obstacles[i].removeObstacleBoundingBox()
+                    self!.obstacles.remove(at: i)
                 }
             }
-            self.visionUpdatePerSec+=1
+            self!.visionUpdatePerSec+=1
         }
     }
     
@@ -197,5 +199,11 @@ class ViewController: UIViewController, ARSCNViewDelegate
         if(self.processing) { return }
         
         self.runObjectDetectionOnCurrentFrame(frame: frame!)
+    }
+    
+    func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
+        let obstacleNode = SCNNode(geometry: SCNSphere(radius: 0.01))
+        obstacleNode.geometry?.firstMaterial?.diffuse.contents = UIColor.red
+        node.addChildNode(obstacleNode)
     }
 }

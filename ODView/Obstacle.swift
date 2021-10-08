@@ -17,6 +17,7 @@ class Obstacle
     private var distanceFromUser : Float
     private var speed : Float?
     private var boundingBoxView : BoundingBoxView
+    private var anchor : ARAnchor!
     
     init(label: String,
          boundingBox: CGRect)
@@ -82,8 +83,7 @@ class Obstacle
         print(points!.points.count)
         for i in 0..<points!.points.count
         {
-            let screenPoint=frame.camera.projectPoint(points!.points[i], orientation: UIInterfaceOrientation.portrait, viewportSize: viewport.size)
-            
+            let screenPoint=frame.camera.projectPoint(points!.points[i], orientation: UIInterfaceOrientation.landscapeRight, viewportSize: viewport.size)
             if(boundingBox.contains(screenPoint))
             {
                 let point = SCNVector3(points!.points[i].x, points!.points[i].y, points!.points[i].z)
@@ -120,6 +120,41 @@ class Obstacle
         return Float(overlappingArea.width*overlappingArea.height)
     }
     
+    public func addObstacleNode(view: ARSCNView)
+    {
+        if(self.closestPoint==nil)
+        {
+            return
+        }
+        
+        let transform = simd_float4x4([1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [self.closestPoint!.x, self.closestPoint!.y, self.closestPoint!.z, 1])
+        self.anchor = ARAnchor(transform: transform)
+        view.session.add(anchor: anchor!)
+    }
+    
+    private func updateObstacleNode(view: ARSCNView)
+    {
+        if(self.closestPoint == nil) { return }
+        
+        let transform = simd_float4x4([1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [self.closestPoint!.x, self.closestPoint!.y, self.closestPoint!.z, 1])
+        
+        if(self.anchor != nil)
+        {
+            view.session.remove(anchor: self.anchor)
+        }
+        
+        self.anchor = ARAnchor(transform: transform)
+        view.session.add(anchor: anchor!)
+    }
+    
+    public func removeObstacleNode(view: ARSCNView)
+    {
+        if(self.anchor == nil) { return }
+        
+        view.session.remove(anchor: self.anchor!)
+        self.anchor=nil
+    }
+    
     public func updateParameters(boundingBox: CGRect, points: ARPointCloud?, frame: ARFrame, view: UIView, viewport: CGRect, deltaTime: Float)
     {
         self.boundingBox=boundingBox
@@ -139,6 +174,7 @@ class Obstacle
             self.speed=velocityVector.magnitude()/deltaTime
         }
         self.boundingBoxView.updateShape(frame: boundingBox, label: getDescription())
+        self.updateObstacleNode(view: view as! ARSCNView)
     }
 
     public func getDescription() -> String

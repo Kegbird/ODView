@@ -18,6 +18,7 @@
                         <subviews>
                             <arscnView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="fRn-xX-pfs">
                                 <rect key="frame" x="0.0" y="-20" width="375" height="638"/>
+                                <gestureRecognizers/>
                             </arscnView>
                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Update x sec:" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="puX-lC-X9o" userLabel="InfoLabel">
                                 <rect key="frame" x="10" y="626" width="141" height="29"/>
@@ -55,6 +56,11 @@
                     <nil key="textColor"/>
                     <nil key="highlightedColor"/>
                 </label>
+                <tapGestureRecognizer id="mTw-BG-wWs">
+                    <connections>
+                        <outlet property="delegate" destination="BYZ-38-t0r" id="q4P-kQ-g35"/>
+                    </connections>
+                </tapGestureRecognizer>
             </objects>
             <point key="canvasLocation" x="112.8" y="77.811094452773617"/>
         </scene>
