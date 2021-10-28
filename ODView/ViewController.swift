@@ -1,6 +1,7 @@
 import UIKit
 import ARKit
 import RealityKit
+import SceneKit
 import Vision
 import KDTree
 
@@ -10,14 +11,47 @@ class ViewController: UIViewController, ARSCNViewDelegate
     
     private var obstacleNodes : [UUID: SCNNode]!
     
+    private var labels : [ARMeshClassification]!
+    
+    private var colorPerLabel : [ARMeshClassification : CGColor]!
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         guard #available(iOS 14.0, *) else { return }
-        
         obstacleNodes=[:]
+        colorPerLabel=[:]
+        labels=[]
+        labels.append(.wall)
+        labels.append(.ceiling)
+        labels.append(.door)
+        labels.append(.floor)
+        labels.append(.none)
+        labels.append(.seat)
+        labels.append(.table)
+        labels.append(.window)
+        //rosso muro
+        colorPerLabel[.wall]=CGColor(red: 1.0, green: 0.0, blue: 0.0, alpha: 0.8)
+        //verde porta
+        colorPerLabel[.door]=CGColor(red: 0.0, green: 1.0, blue: 0.0, alpha: 0.8)
+        //soffitto blu
+        colorPerLabel[.ceiling]=CGColor(red: 0.0, green: 0.0, blue: 1.0, alpha: 0.8)
+        //pavimento viola
+        colorPerLabel[.floor]=CGColor(red: 1.0, green: 0.0, blue: 1.0, alpha: 0.8)
+        //sedia arancione
+        colorPerLabel[.seat]=CGColor(red: 1.0, green: 165.0/255.0, blue: 0, alpha: 0.8)
+        //tavolo blu chiaro
+        colorPerLabel[.table]=CGColor(red: 173.0/255.0, green: 216.0/255.0, blue: 230.0/255.0, alpha: 0.8)
+        //finestra rosa
+        colorPerLabel[.window]=CGColor(red:1.0, green: 192.0/255.0, blue: 203/255.0, alpha: 0.8)
+        //bianco none
+        colorPerLabel[.none] = CGColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 0.8)
         arscnView.delegate=self
         arscnView.frame=self.view.frame
+        arscnView.debugOptions.insert(SCNDebugOptions.showWorldOrigin)
+        arscnView.debugOptions.insert(SCNDebugOptions.showFeaturePoints)
         let configuration = ARWorldTrackingConfiguration()
+        configuration.worldAlignment = .gravity
+        configuration.planeDetection = [.horizontal, .vertical]
         configuration.sceneReconstruction = .meshWithClassification
         arscnView.session.run(configuration)
     }
@@ -28,182 +62,90 @@ class ViewController: UIViewController, ARSCNViewDelegate
         arscnView.session.pause()
     }
     
-    func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
+    func createGeometry(vertices:[SCNVector3], indices:[Int32], primitiveType:SCNGeometryPrimitiveType) -> SCNGeometry
+    {
         
-        guard #available(iOS 14.0, *) else { return }
-        
-        DispatchQueue.global().async
-        { [weak self] in
-            guard let frame = self!.arscnView.session.currentFrame else { return }
-            
-            let currentCameraPosition = SCNVector3(frame.camera.transform.columns.3.x, frame.camera.transform.columns.3.y, frame.camera.transform.columns.3.z)
-            
-            var minDistance = 1000.0
-            var closestObstacle : SCNNode? = nil
-            
-            for anchorUUID in self!.obstacleNodes.keys
-            {
-                guard let obstacles = self!.obstacleNodes[anchorUUID] else { continue }
-                
-                for obstacle in obstacles.childNodes
+        // Computed property that indicates the number of primitives to create based on primitive type
+        var primitiveCount:Int
+        {
+            get {
+                switch primitiveType
                 {
-                    let obstaclePosition = obstacle.worldPosition
-                    let distance = obstaclePosition.squaredDistance(to: currentCameraPosition)
-                    
-                    if(distance<minDistance)
-                    {
-                        minDistance=distance
-                        if(closestObstacle != nil)
-                        {
-                            //False positives will return red
-                            closestObstacle!.geometry?.firstMaterial?.diffuse.contents = UIColor.red
-                        }
-                        closestObstacle=obstacle
-                    }
-                    else
-                    {
-                        closestObstacle!.geometry?.firstMaterial?.diffuse.contents = UIColor.red
-                    }
+                case SCNGeometryPrimitiveType.line:
+                    return indices.count / 2
+                case SCNGeometryPrimitiveType.point:
+                    return indices.count
+                default:
+                    return indices.count / 3
                 }
             }
-            
-            if(closestObstacle != nil)
-            {
-                //Highlight closest obstacle
-                closestObstacle!.geometry?.firstMaterial?.diffuse.contents = UIColor.green
-            }
         }
+        
+        // Create the source and elements in the appropriate format
+        let data = NSData(bytes: vertices, length: MemoryLayout<SCNVector3>.size * vertices.count)
+        let vertexSource = SCNGeometrySource(
+            data: data as Data, semantic: SCNGeometrySource.Semantic.vertex,
+            vectorCount: vertices.count, usesFloatComponents: true, componentsPerVector: 3,
+            bytesPerComponent: MemoryLayout<Float>.size, dataOffset: 0, dataStride: MemoryLayout<SCNVector3>.size)
+        
+        let indexData = NSData(bytes: indices, length: MemoryLayout<Int32>.size * indices.count)
+        let element = SCNGeometryElement(
+            data: indexData as Data, primitiveType: primitiveType,
+            primitiveCount: primitiveCount, bytesPerIndex: MemoryLayout<Int32>.size)
+        
+        return SCNGeometry(sources: [vertexSource], elements: [element])
     }
     
-    func renderer(_ renderer: SCNSceneRenderer, nodeFor anchor: ARAnchor) -> SCNNode? {
-        
-        guard #available(iOS 14.0, *) else { return nil }
-        
-        guard let meshAnchor = anchor as? ARMeshAnchor else { return nil }
-        
-        DispatchQueue.global().async
-        { [weak self] in
-            let meshGeometry = meshAnchor.geometry
-            
-            let anchorNode = SCNNode()
-            
-            self!.obstacleNodes[anchor.identifier] = anchorNode
-                
-            var obstaclePoints : [SCNVector3] = []
-            
-            //Loop over the faces belonging to the new anchor to extract
-            //all points not belonging to ceiling, floor, wall and window
-            for index in 0..<meshGeometry.faces.count
-            {
-                //If the face belong to wall/windows/ceiling, we discard that face
-                let classification=meshGeometry.classificationOf(faceWithIndex: index)
-                
-                if(classification != .ceiling &&
-                   classification != .floor &&
-                   classification != .wall &&
-                   classification != .window)
-                {
-                    let faceVertices = meshGeometry.verticesOf(faceWithIndex: index).compactMap({SCNVector3(x: $0.0, y: $0.1, z: $0.2)})
-                    obstaclePoints.append(faceVertices[0])
-                    obstaclePoints.append(faceVertices[1])
-                    obstaclePoints.append(faceVertices[2])
-                }
-            }
-            
-            if(obstaclePoints.count==0) { return }
-            
-            let kdTree : KDTree = KDTree(values: obstaclePoints)
-            
-            let clusters=kdTree.euclideanClustering()
-            
-            for cluster in clusters
-            {
-                let count = Float(cluster.count)
-                
-                if(count==0){ continue }
-                
-                var centroid = cluster.reduce(SCNVector3(x: 0, y: 0, z:0))
-                {
-                    SCNVector3(x: $0.x+$1.x, y: $0.y+$1.y, z: $0.z+$1.z)
-                }
-                centroid.x=centroid.x/count
-                centroid.y=centroid.y/count
-                centroid.z=centroid.z/count
-                
-                let obstacleNode = SCNNode(geometry: SCNSphere(radius: 0.5))
-                obstacleNode.geometry?.firstMaterial?.diffuse.contents = UIColor.red
-                obstacleNode.worldPosition=centroid
-                anchorNode.addChildNode(obstacleNode)
-            }
-        }
-            
-        return nil
+    func createLine(vertices:[SCNVector3], indices:[Int32], node: SCNNode)
+    {
+        let indices = [Int32(0), Int32(1)]
+        let geometry = createGeometry(vertices: vertices, indices: indices, primitiveType: SCNGeometryPrimitiveType.line)
+        geometry.firstMaterial?.diffuse.contents=CGColor(red: 1, green: 1, blue: 1, alpha: 1)
+        let line = SCNNode(geometry: geometry)
+        line.position=SCNVector3Zero
+        node.addChildNode(line)
     }
     
     func renderer(_ renderer: SCNSceneRenderer, didUpdate node: SCNNode, for anchor: ARAnchor)
     {
-        guard #available(iOS 14.0, *) else { return }
-        
-        guard let meshAnchor = anchor as? ARMeshAnchor else { return }
-        
-        DispatchQueue.global().async
-        { [weak self] in
-            
-            guard let obstacleNodes = self!.obstacleNodes[anchor.identifier] else { return }
-            
-            for i in stride(from: obstacleNodes.childNodes.count-1, to: -1, by: -1)
+        if((anchor as? ARPlaneAnchor) != nil)
+        {
+            let planeAnchor = anchor as! ARPlaneAnchor
+            let width = CGFloat(planeAnchor.extent.x)
+            let height = CGFloat(planeAnchor.extent.z)
+            let plane: SCNPlane = SCNPlane(width: width, height: height)
+            let planeNode = SCNNode(geometry: plane)
+            planeNode.simdPosition = planeAnchor.center
+            planeNode.eulerAngles.x = -.pi / 2
+            //Understand if its floor or ceiling
+            if(planeAnchor.alignment == .horizontal)
             {
-                obstacleNodes.childNodes[i].removeFromParentNode()
-            }
-            
-            let meshGeometry = meshAnchor.geometry
-                
-            var obstaclePoints : [SCNVector3] = []
-            
-            //Loop over the faces belonging to the new anchor to extract
-            //all points not belonging to ceiling, floor, wall and window
-            for index in 0..<meshGeometry.faces.count
-            {
-                //If the face belong to wall/windows/ceiling, we discard that face
-                let classification=meshGeometry.classificationOf(faceWithIndex: index)
-                
-                if(classification != .ceiling &&
-                   classification != .floor &&
-                   classification != .wall &&
-                   classification != .window)
+                guard let frame = arscnView.session.currentFrame else { return }
+                let cameraPosition = SCNVector3(frame.camera.transform.columns.3.x, frame.camera.transform.columns.3.y, frame.camera.transform.columns.3.z)
+                let planeWorldTransform = node.simdConvertTransform(simd_float4x4(planeNode.transform), to: nil)
+                let planeWorldPosition = SCNVector3(x: planeWorldTransform.columns.3.x, y:
+                    planeWorldTransform.columns.3.y, z:
+                    planeWorldTransform.columns.3.z)
+                //let normal = simd_float4(0, 0 ,1, 1) * planeWorldTransform
+                if(cameraPosition.y<planeWorldPosition.y)
                 {
-                    let faceVertices = meshGeometry.verticesOf(faceWithIndex: index).compactMap({SCNVector3(x: $0.0, y: $0.1, z: $0.2)})
-                    obstaclePoints.append(faceVertices[0])
-                    obstaclePoints.append(faceVertices[1])
-                    obstaclePoints.append(faceVertices[2])
+                    return
                 }
+                planeNode.geometry?.firstMaterial?.diffuse.contents=CGColor(red: 1, green: 0, blue: 1, alpha: 0.8)
             }
-            
-            if(obstaclePoints.count==0) { return }
-            
-            let kdTree : KDTree = KDTree(values: obstaclePoints)
-            
-            let clusters=kdTree.euclideanClustering()
-            
-            for cluster in clusters
+            else
             {
-                let count = Float(cluster.count)
-                
-                if(count==0){ continue }
-                
-                var centroid = cluster.reduce(SCNVector3(x: 0, y: 0, z:0))
-                {
-                    SCNVector3(x: $0.x+$1.x, y: $0.y+$1.y, z: $0.z+$1.z)
-                }
-                centroid.x=centroid.x/count
-                centroid.y=centroid.y/count
-                centroid.z=centroid.z/count
-                
-                let obstacleNode = SCNNode(geometry: SCNSphere(radius: 0.5))
-                obstacleNode.geometry?.firstMaterial?.diffuse.contents = UIColor.red
-                obstacleNode.worldPosition=centroid
-                obstacleNodes.addChildNode(obstacleNode)
+                planeNode.geometry?.firstMaterial?.diffuse.contents=CGColor(red: 0, green: 1, blue: 0, alpha: 0.8)
             }
+            
+            for i in stride(from: node.childNodes.count-1, through: 0, by: -1)
+            {
+                node.childNodes[i].removeFromParentNode()
+            }
+            node.addChildNode(planeNode)
+        }
+        else if ((anchor as? ARMeshAnchor) != nil)
+        {
         }
     }
 }

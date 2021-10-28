@@ -41,6 +41,20 @@ extension SCNVector3 : KDTreePoint
     public func squaredDistance(to otherPoint: SCNVector3) -> Double {
         return Double(sqrt(pow(self.x-otherPoint.x,2)+pow(self.y-otherPoint.y,2)+pow(self.z-otherPoint.z,2)))
     }
+    
+    public func dotProduct(otherPoint: SCNVector3) -> Double
+    {
+        return Double(abs(self.x*otherPoint.x+self.y*otherPoint.y+self.z*otherPoint.z))
+    }
+    
+    public func normalize() -> SCNVector3
+    {
+        let magnitude = self.magnitude()
+        let x = self.x/magnitude
+        let y = self.y/magnitude
+        let z = self.z/magnitude
+        return SCNVector3(x: x, y: y, z: z)
+    }
 }
 
 extension KDTree
@@ -94,7 +108,8 @@ extension KDTree
 }
 
 extension ARMeshGeometry {
-    func classificationOf(faceWithIndex index: Int) -> ARMeshClassification {
+    func classificationOf(faceWithIndex index: Int) -> ARMeshClassification
+    {
         guard let classification = classification else { return .none }
         assert(classification.format == MTLVertexFormat.uchar, "Expected one unsigned char (one byte) per classification")
         let classificationPointer = classification.buffer.contents().advanced(by: classification.offset + (classification.stride * index))
@@ -109,7 +124,16 @@ extension ARMeshGeometry {
         return vertex
     }
     
-    func vertexIndicesOf(faceWithIndex faceIndex: Int) -> [UInt32] {
+    func normal(at index: Int) -> SCNVector3
+    {
+        assert(vertices.format == MTLVertexFormat.float3, "Expected three floats (twelve bytes) per vertex.")
+        let normalPointer = normals.buffer.contents().advanced(by: normals.offset + (normals.stride * index))
+        let normal = normalPointer.assumingMemoryBound(to: (Float, Float, Float).self).pointee
+        return SCNVector3(x: normal.0, y: normal.1, z: normal.2)
+    }
+    
+    func vertexIndicesOf(faceWithIndex faceIndex: Int) -> [UInt32]
+    {
         assert(faces.bytesPerIndex == MemoryLayout<UInt32>.size, "Expected one UInt32 (four bytes) per vertex index")
         let vertexCountPerFace = faces.indexCountPerPrimitive
         let vertexIndicesPointer = faces.buffer.contents()
@@ -120,6 +144,18 @@ extension ARMeshGeometry {
             vertexIndices.append(vertexIndexPointer.assumingMemoryBound(to: UInt32.self).pointee)
         }
         return vertexIndices
+    }
+    
+    func normalOf(faceWithIndex faceIndex: Int) -> SCNVector3
+    {
+        let vertices = verticesOf(faceWithIndex: faceIndex)
+        let a = SCNVector3(x: vertices[0].0, y: vertices[0].1, z: vertices[0].2)
+        let b = SCNVector3(x: vertices[1].0, y: vertices[1].1, z: vertices[1].2)
+        let c = SCNVector3(x: vertices[2].0, y: vertices[2].1, z: vertices[2].2)
+        let ba = SIMD3(x: b.x-a.x, y: b.y-a.y, z: b.z-a.z)
+        let ca = SIMD3(x: c.x-a.x, y: c.y-a.y, z: c.z-a.z)
+        let normal = SCNVector3(cross(ba, ca)).normalize()
+        return normal
     }
     
     //Return the vertices of the face indicized with id index
@@ -136,6 +172,23 @@ extension ARMeshGeometry {
         return geometricCenter
     }
 }
+
+/*extension SCNNode {
+    func centerAlign() {
+        let (min, max) = boundingBox
+        let extents = float3(max) - float3(min)
+        simdPivot = float4x4(translation: ((extents / 2) + float3(min)))
+    }
+}
+
+extension float4x4 {
+    init(translation vector: float3) {
+        self.init(float4(1, 0, 0, 0),
+                  float4(0, 1, 0, 0),
+                  float4(0, 0, 1, 0),
+                  float4(vector.x, vector.y, vector.z, 1))
+    }
+}*/
 
 extension  SCNGeometrySource {
     convenience init(_ source: ARGeometrySource, semantic: Semantic) {
