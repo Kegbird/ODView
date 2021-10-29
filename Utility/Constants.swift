@@ -8,9 +8,11 @@ import ARKit
 
 class Constants
 {
-    public static let DISTANCE_THRESHOLD : Double = 0.1
+    public static let AREA_THRESHOLD : Float = 1.0
+    public static let DISTANCE_THRESHOLD : Float = 0.1
+    public static let TRIANGLE_DISTANCE_THRESHOLD : Float = 0.5
     public static let MIN_NUMBER_TRIANGLES : Int = 10
-    public static let MIN_NUMBER_POINTS_PER_CLUSTER : Int = 10
+    public static let MIN_NUMBER_POINTS_PER_CLUSTER : Int = 12
     public static let MAX_NUMBER_POINTS_PER_CLUSTER : Int = 100
     public static let MIN_CONFIDENCE_PREDICTION: Float = 0.9
     public static let FRAME_PER_SECOND : Float = 60.0

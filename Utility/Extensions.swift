@@ -18,6 +18,15 @@ extension simd_float4x4 {
 
 extension SCNVector3 : KDTreePoint
 {
+    public func getSimd() -> simd_float3
+    {
+        var simd = simd_float3()
+        simd.x = self.x
+        simd.y = self.y
+        simd.z = self.z
+        return simd
+    }
+    
     public func magnitude() -> Float
     {
         return sqrt(pow(self.x, 2)+pow(self.y, 2)+pow(self.z, 2))
@@ -89,7 +98,7 @@ extension KDTree
             processed[index]=true
             cluster.append(point)
             //Get the max number of points withing distanceThreshold
-            let nearbyPoints = self.nearestK(Constants.MAX_NUMBER_POINTS_PER_CLUSTER, to: self.elements[index], where: {p in p.squaredDistance(to: point as! Element )<Constants.DISTANCE_THRESHOLD})
+            let nearbyPoints = self.nearestK(Constants.MAX_NUMBER_POINTS_PER_CLUSTER, to: self.elements[index], where: {p in p.squaredDistance(to: point as! Element )<Double(Constants.DISTANCE_THRESHOLD)})
             
             for i in 0..<nearbyPoints.count
             {
