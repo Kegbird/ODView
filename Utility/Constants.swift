@@ -8,14 +8,21 @@ import ARKit
 
 class Constants
 {
+    public static let PREFERRED_FPS : Int = 30
     public static let AREA_THRESHOLD : Float = 1.0
-    public static let DISTANCE_THRESHOLD : Float = 0.1
+    public static let PLANE_DISTANCE_THRESHOLD : Float = 0.1
     public static let TRIANGLE_DISTANCE_THRESHOLD : Float = 0.5
-    public static let MIN_NUMBER_TRIANGLES : Int = 10
-    public static let MIN_NUMBER_POINTS_PER_CLUSTER : Int = 12
-    public static let MAX_NUMBER_POINTS_PER_CLUSTER : Int = 100
-    public static let MIN_CONFIDENCE_PREDICTION: Float = 0.9
-    public static let FRAME_PER_SECOND : Float = 60.0
+    //All triangles which are farther than 4 meter will not be considered
+    public static let MAX_TRIANGLE_DISTANCE : Float = 4.0
+    //All anchors which are farther than 4 meter will be removed
+    public static let MAX_ANCHOR_DISTANCE : Float = 4.0
+    //Obstacles that are in a range of 1 meter will be collapsed
+    public static let ANCHOR_RANGE : Float = 2.0
+    public static let MAX_OBSTACLE_NUMBER : Int = 10
+    
+    public static let MIN_POINTS_NUMBER : Int = 100
+    public static let MIN_NUMBER_TRIANGLES : Int = 100
+    public static let FRAME_PER_SECOND : Float = 30.0
     public static var WIDTH : CGFloat = 0
     public static var HEIGHT : CGFloat = 0
     public static var OFFSET_Y : CGFloat = 0

@@ -16,8 +16,21 @@ extension simd_float4x4 {
     }
 }
 
+extension Array where Element: Equatable
+{
+    func allIndices(of value: Element) -> [Index]
+    {
+        indices.filter { self[$0] == value }
+    }
+}
+
 extension SCNVector3 : KDTreePoint
 {
+    public static func distanceBetween(_ first: SCNVector3, _ second: SCNVector3) -> Float
+    {
+        return sqrt(pow(first.x-second.x,2)+pow(first.y-second.y,2)+pow(first.z-second.z,2))
+    }
+    
     public func getSimd() -> simd_float3
     {
         var simd = simd_float3()
@@ -66,14 +79,15 @@ extension SCNVector3 : KDTreePoint
     }
 }
 
-extension KDTree
+/*extension KDTree
 {
     public func euclideanClustering() -> [[SCNVector3]]
     {
         var clusters : [[SCNVector3]] = []
         //Flag true all points already addded to a cluster
         var processed : [Bool] = [Bool](repeating: false, count: self.elements.count)
-        
+        var size = self.elements.count
+        print(size)
         for i in 0..<self.elements.count
         {
             if(!processed[i])
@@ -81,13 +95,9 @@ extension KDTree
                 var cluster : [SCNVector3] = []
                 let point = self.elements[i] as! SCNVector3
                 findCluster(point: point, processed: &processed, index: i, cluster: &cluster)
-                if(cluster.count>Constants.MIN_NUMBER_POINTS_PER_CLUSTER)
-                {
-                    clusters.append(cluster)
-                }
+                clusters.append(cluster)
             }
         }
-        
         return clusters
     }
     
@@ -98,8 +108,7 @@ extension KDTree
             processed[index]=true
             cluster.append(point)
             //Get the max number of points withing distanceThreshold
-            let nearbyPoints = self.nearestK(Constants.MAX_NUMBER_POINTS_PER_CLUSTER, to: self.elements[index], where: {p in p.squaredDistance(to: point as! Element )<Double(Constants.DISTANCE_THRESHOLD)})
-            
+            let nearbyPoints = self.nearestK(Constants.MAX_NUMBER_POINTS_PER_CLUSTER, to: self.elements[index], where: {p in p.squaredDistance(to: point as! Element )<Double(Constants.PLANE_DISTANCE_THRESHOLD)})
             for i in 0..<nearbyPoints.count
             {
                 //The corrisponding index of the nearest point in the
@@ -111,10 +120,9 @@ extension KDTree
                     findCluster(point: nearPoint, processed: &processed, index: j, cluster: &cluster)
                 }
             }
-            
         }
     }
-}
+}*/
 
 extension ARMeshGeometry {
     func classificationOf(faceWithIndex index: Int) -> ARMeshClassification
@@ -181,23 +189,6 @@ extension ARMeshGeometry {
         return geometricCenter
     }
 }
-
-/*extension SCNNode {
-    func centerAlign() {
-        let (min, max) = boundingBox
-        let extents = float3(max) - float3(min)
-        simdPivot = float4x4(translation: ((extents / 2) + float3(min)))
-    }
-}
-
-extension float4x4 {
-    init(translation vector: float3) {
-        self.init(float4(1, 0, 0, 0),
-                  float4(0, 1, 0, 0),
-                  float4(0, 0, 1, 0),
-                  float4(vector.x, vector.y, vector.z, 1))
-    }
-}*/
 
 extension  SCNGeometrySource {
     convenience init(_ source: ARGeometrySource, semantic: Semantic) {

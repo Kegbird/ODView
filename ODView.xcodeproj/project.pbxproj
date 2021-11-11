@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		702CDBB526F7778E0046972D /* BoundingBoxView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 702CDBB426F7778E0046972D /* BoundingBoxView.swift */; };
+		702CDBB526F7778E0046972D /* ObstacleBoundingBoxView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 702CDBB426F7778E0046972D /* ObstacleBoundingBoxView.swift */; };
 		702EAB8726E8B95900287B1B /* Obstacle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 702EAB8626E8B95900287B1B /* Obstacle.swift */; };
 		709C57DE2722A38600A2BBEB /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 709C57DD2722A38600A2BBEB /* SceneDelegate.swift */; };
 		70A2FAA8271977B600A629D4 /* KDTree in Frameworks */ = {isa = PBXBuildFile; productRef = 70A2FAA7271977B600A629D4 /* KDTree */; };
@@ -40,7 +40,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		702CDBB426F7778E0046972D /* BoundingBoxView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BoundingBoxView.swift; sourceTree = "<group>"; };
+		702CDBB426F7778E0046972D /* ObstacleBoundingBoxView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ObstacleBoundingBoxView.swift; sourceTree = "<group>"; };
 		702EAB8626E8B95900287B1B /* Obstacle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Obstacle.swift; sourceTree = "<group>"; };
 		709C57DD2722A38600A2BBEB /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		70C70CB527063E0400ADCCAE /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
@@ -91,6 +91,7 @@
 			children = (
 				702EAB8626E8B95900287B1B /* Obstacle.swift */,
 				70C70CB527063E0400ADCCAE /* Extensions.swift */,
+				702CDBB426F7778E0046972D /* ObstacleBoundingBoxView.swift */,
 				70C70CB727063FEC00ADCCAE /* Constants.swift */,
 			);
 			path = Utility;
@@ -121,7 +122,6 @@
 			isa = PBXGroup;
 			children = (
 				70ED4C6226CFA083006173D9 /* AppDelegate.swift */,
-				702CDBB426F7778E0046972D /* BoundingBoxView.swift */,
 				70ED4C6626CFA083006173D9 /* ViewController.swift */,
 				70ED4C6826CFA083006173D9 /* Main.storyboard */,
 				70ED4C6B26CFA085006173D9 /* Assets.xcassets */,
@@ -291,7 +291,7 @@
 				70ED4C6326CFA083006173D9 /* AppDelegate.swift in Sources */,
 				70C70CB627063E0400ADCCAE /* Extensions.swift in Sources */,
 				709C57DE2722A38600A2BBEB /* SceneDelegate.swift in Sources */,
-				702CDBB526F7778E0046972D /* BoundingBoxView.swift in Sources */,
+				702CDBB526F7778E0046972D /* ObstacleBoundingBoxView.swift in Sources */,
 				70C70CB827063FEC00ADCCAE /* Constants.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
