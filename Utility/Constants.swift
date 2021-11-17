@@ -19,7 +19,7 @@ class Constants
     //Obstacles that are in a range of 1 meter will be collapsed
     public static let ANCHOR_RANGE : Float = 2.0
     public static let MAX_OBSTACLE_NUMBER : Int = 50
-    public static let CLUSTER_MERGE_DISTANCE : Float = 1.0
+    public static let MERGE_DISTANCE : Float = 0.5
     
     public static let MIN_POINTS_NUMBER : Int = 100
     public static let MIN_NUMBER_TRIANGLES_FOR_CLUSTER : Int = 10

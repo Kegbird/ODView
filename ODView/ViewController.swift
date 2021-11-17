@@ -424,8 +424,6 @@ class ViewController: UIViewController, ARSCNViewDelegate, UIGestureRecognizerDe
                 
                 var obstacles : [Obstacle] = []
                 //Per ogni cluster genero la relativa mbr
-                print("Face clusters:",faceClusters.count, " anchor:",anchor.identifier)
-                
                 for i in stride(from: faceClusters.count-1, through: 0, by: -1)
                 {
                     if(faceClusters[i].count<Constants.MIN_NUMBER_TRIANGLES_FOR_CLUSTER)
@@ -458,16 +456,43 @@ class ViewController: UIViewController, ARSCNViewDelegate, UIGestureRecognizerDe
                             if(!indexHolder.contains(index))
                             {
                                 indexHolder.insert(index)
-                                obstacle.updateBoundaries(frame: frame, viewportSize: self!.viewportSize, point: worldVertices[j])
-                                obstacle.updateCentroid(worldPoint: worldVertices[j])
+                                obstacle.updateBoundaries(frame: frame, viewportSize: self!.viewportSize, worldPoint: worldVertices[j])
                             }
                         }
                     }
-                    obstacle.calculateCentroid(numPoints: pointClusters[i].count)
                     obstacles.append(obstacle)
                 }
                 
-                print("anchor:",anchor.identifier, ":",obstacles.count)
+                //Fondo le mbr vicine generate a partire dalla stessa ancora
+                var i = 0
+                while(i<obstacles.count)
+                {
+                    let obstacle = obstacles[i]
+                    var j = obstacles.count-1
+                    while(j>i)
+                    {
+                        let otherObstacle = obstacles[j]
+                        if(obstacle.getDistanceWithOtherObstacle(other: otherObstacle)<=Constants.MERGE_DISTANCE)
+                        {
+                            //Se la distanza tra le due mbr è minore della
+                            //merge distance, allora eseguo il merge tra i
+                            //2 oggetti.
+                            obstacle.mergeWithOther(other: otherObstacle)
+                            obstacles[i] = obstacle
+                            //Rimuovo ostacolo non necessario.
+                            obstacles.remove(at: j)
+                            //Riprendo lo scan per i merge dall'inizio.
+                            i=0
+                            j=obstacles.count-1
+                        }
+                        else
+                        {
+                            //Altrimenti passo all'ostacolo successivo
+                            j-=1
+                        }
+                    }
+                    i=i+1
+                }
                 
                 self!.lockQueue.async
                 { [weak self] in
@@ -478,8 +503,9 @@ class ViewController: UIViewController, ARSCNViewDelegate, UIGestureRecognizerDe
                 let end=DispatchTime.now()
                 
                 let time = Float(end.uptimeNanoseconds - begin.uptimeNanoseconds) / 1_000_000_000
-                
             }
+            
+            
         }
     }
     
@@ -506,8 +532,6 @@ class ViewController: UIViewController, ARSCNViewDelegate, UIGestureRecognizerDe
             }
             
         }
-        
-        //print(currentObstacles.count)
         
         if(currentObstacles.count>=Constants.MAX_OBSTACLE_NUMBER)
         {
