@@ -8,7 +8,6 @@
 import Foundation
 import ARKit
 import RealityKit
-import KDTree
 
 extension simd_float4x4 {
     var position: SIMD3<Float> {
@@ -24,7 +23,7 @@ extension Array where Element: Equatable
     }
 }
 
-extension SCNVector3 : KDTreePoint
+extension SCNVector3
 {
     public static func distanceBetween(_ first: SCNVector3, _ second: SCNVector3) -> Float
     {

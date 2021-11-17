@@ -3,14 +3,13 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 52;
+	objectVersion = 50;
 	objects = {
 
 /* Begin PBXBuildFile section */
 		702CDBB526F7778E0046972D /* ObstacleBoundingBoxView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 702CDBB426F7778E0046972D /* ObstacleBoundingBoxView.swift */; };
 		702EAB8726E8B95900287B1B /* Obstacle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 702EAB8626E8B95900287B1B /* Obstacle.swift */; };
 		709C57DE2722A38600A2BBEB /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 709C57DD2722A38600A2BBEB /* SceneDelegate.swift */; };
-		70A2FAA8271977B600A629D4 /* KDTree in Frameworks */ = {isa = PBXBuildFile; productRef = 70A2FAA7271977B600A629D4 /* KDTree */; };
 		70C70CB627063E0400ADCCAE /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70C70CB527063E0400ADCCAE /* Extensions.swift */; };
 		70C70CB827063FEC00ADCCAE /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70C70CB727063FEC00ADCCAE /* Constants.swift */; };
 		70ED4C6326CFA083006173D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70ED4C6226CFA083006173D9 /* AppDelegate.swift */; };
@@ -65,7 +64,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				70A2FAA8271977B600A629D4 /* KDTree in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -167,7 +165,6 @@
 			);
 			name = ODView;
 			packageProductDependencies = (
-				70A2FAA7271977B600A629D4 /* KDTree */,
 			);
 			productName = ODView;
 			productReference = 70ED4C5F26CFA083006173D9 /* ODView.app */;
@@ -241,7 +238,6 @@
 			);
 			mainGroup = 70ED4C5626CFA083006173D9;
 			packageReferences = (
-				70A2FAA6271977B600A629D4 /* XCRemoteSwiftPackageReference "KDTree" */,
 			);
 			productRefGroup = 70ED4C6026CFA083006173D9 /* Products */;
 			projectDirPath = "";
@@ -629,25 +625,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
-/* Begin XCRemoteSwiftPackageReference section */
-		70A2FAA6271977B600A629D4 /* XCRemoteSwiftPackageReference "KDTree" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/Bersaelor/KDTree";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.4.1;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		70A2FAA7271977B600A629D4 /* KDTree */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 70A2FAA6271977B600A629D4 /* XCRemoteSwiftPackageReference "KDTree" */;
-			productName = KDTree;
-		};
-/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 70ED4C5726CFA083006173D9 /* Project object */;
 }
