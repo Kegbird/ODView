@@ -65,7 +65,7 @@ class Obstacle
         if(worldPoint.y<minWorldPosition.y) { minWorldPosition.y = worldPoint.y }
         if(worldPoint.z<minWorldPosition.z) { minWorldPosition.z = worldPoint.z }
         if(worldPoint.x>maxWorldPosition.x) { maxWorldPosition.x = worldPoint.x }
-        if(worldPoint.x>maxWorldPosition.x) { maxWorldPosition.x = worldPoint.x }
+        if(worldPoint.y>maxWorldPosition.y) { maxWorldPosition.y = worldPoint.y }
         if(worldPoint.z>maxWorldPosition.z) { maxWorldPosition.z = worldPoint.z }
         
         if(screenPoint.x<minPointBoundingBox.x) { minPointBoundingBox.x = screenPoint.x }
@@ -82,10 +82,75 @@ class Obstacle
             return CGRect.zero
         }
         
+        /*let min = view.projectPoint(minWorldPosition)
+        let max = view.projectPoint(maxWorldPosition)
+        let width = max.x - min.x
+        let height = max.y - min.y
+        let frame = CGRect(x: CGFloat(min.x), y: CGFloat(min.y), width: CGFloat(width), height: CGFloat(height))
+        return frame*/
+        
+        
         let width = maxPointBoundingBox.x - minPointBoundingBox.x
         let height = maxPointBoundingBox.y - minPointBoundingBox.y
         let frame = CGRect(x: minPointBoundingBox.x, y: minPointBoundingBox.y, width: width, height: height)
         return frame
+    }
+    
+    public func getWorldCornerPositions() -> [SCNVector3]
+    {
+        if(minPointBoundingBox==nil || minWorldPosition==nil
+           || maxPointBoundingBox==nil || maxWorldPosition==nil)
+        {
+            return []
+        }
+        var cornerWorldPositions : [SCNVector3] = []
+        //Primo spigolo
+        cornerWorldPositions.append(maxWorldPosition)
+        var otherCorner = SCNVector3(x: minWorldPosition.x, y: maxWorldPosition.y, z: maxWorldPosition.z)
+        //Secondo spigolo
+        cornerWorldPositions.append(otherCorner)
+        otherCorner.x=maxWorldPosition.x
+        otherCorner.y=minWorldPosition.y
+        otherCorner.z=maxWorldPosition.z
+        //Terzo spigolo
+        cornerWorldPositions.append(otherCorner)
+        otherCorner.x=maxWorldPosition.x
+        otherCorner.y=maxWorldPosition.y
+        otherCorner.z=minWorldPosition.z
+        //Quarto spigolo
+        cornerWorldPositions.append(otherCorner)
+        //Quinto spigolo
+        cornerWorldPositions.append(minWorldPosition)
+        otherCorner.x=maxWorldPosition.x
+        otherCorner.y=minWorldPosition.y
+        otherCorner.z=minWorldPosition.z
+        //Sesto spigolo
+        cornerWorldPositions.append(otherCorner)
+        otherCorner.x=minWorldPosition.x
+        otherCorner.y=maxWorldPosition.y
+        otherCorner.z=minWorldPosition.z
+        //Settimo spigolo
+        cornerWorldPositions.append(otherCorner)
+        otherCorner.x=minWorldPosition.x
+        otherCorner.y=minWorldPosition.y
+        otherCorner.z=maxWorldPosition.z
+        //Ottavo spigolo
+        cornerWorldPositions.append(otherCorner)
+        return cornerWorldPositions
+    }
+    
+    public func areIntersected(other : Obstacle) -> Bool
+    {
+        if(maxWorldPosition.x>=other.minWorldPosition.x &&
+           minWorldPosition.x<=other.maxWorldPosition.x &&
+           maxWorldPosition.y>=other.minWorldPosition.y &&
+           minWorldPosition.y<=other.maxWorldPosition.y &&
+           maxWorldPosition.z>=other.minWorldPosition.z &&
+           minWorldPosition.z<=other.maxWorldPosition.z)
+        {
+            return true
+        }
+        return false
     }
     
     public func getDistanceWithOtherObstacle(other : Obstacle) -> Float
@@ -95,30 +160,21 @@ class Obstacle
         {
             return 0
         }
-        /*
-         Devi calcolare la distanza. Due modi: misuri la distanza tra ogni coppia di punti (preciso ma lento) oppure fai il mbr degli oggetti e poi calcoli la distanza tra due parallelepipedi (tempo lineare nel numero di punti, secondo me sufficientemente preciso per quello che ci serve). Tra l’altro se hai un punto del codice dove scorri tutti i vertici per ogni oggetto, lì puoi aggiungere la calcolo della min/max xyz, dunque la seconda opzione arriva praticamente gratis
-         */
         
-        var midWordPosition = SCNVector3Zero
-        midWordPosition.x = maxWorldPosition.x + minWorldPosition.x
-        midWordPosition.y = maxWorldPosition.y + minWorldPosition.y
-        midWordPosition.z = maxWorldPosition.z + minWorldPosition.z
-        midWordPosition.x /= 2.0
-        midWordPosition.y /= 2.0
-        midWordPosition.z /= 2.0
+        if(areIntersected(other: other))
+        { return 0 }
         
-        let otherMaxWorldPosition = other.getMaxWorldPosition()
-        let otherMinWorldPosition = other.getMinWorldPosition()
-        
-        var otherMidWorldPosition = SCNVector3Zero
-        otherMidWorldPosition.x = otherMaxWorldPosition.x + otherMinWorldPosition.x
-        otherMidWorldPosition.y = otherMaxWorldPosition.y + otherMinWorldPosition.y
-        otherMidWorldPosition.z = otherMaxWorldPosition.z + otherMinWorldPosition.z
-        otherMidWorldPosition.x /= 2.0
-        otherMidWorldPosition.y /= 2.0
-        otherMidWorldPosition.z /= 2.0
-        
-        return SCNVector3.distanceBetween(midWordPosition, otherMidWorldPosition)
+        let minMinDistance = SCNVector3.distanceBetween(minWorldPosition, other.minWorldPosition)
+        let maxMaxDistance = SCNVector3.distanceBetween(maxWorldPosition, other.maxWorldPosition)
+        let minMaxDistance = SCNVector3.distanceBetween(minWorldPosition, other.maxWorldPosition)
+        let maxMinDistance = SCNVector3.distanceBetween(maxWorldPosition, other.minWorldPosition)
+        let distances = [minMinDistance, maxMaxDistance, minMaxDistance, maxMinDistance]
+        return distances.min()!
+    }
+    
+    static func == (lhs: Obstacle, rhs: Obstacle) -> Bool {
+        return
+            lhs.getDescription()==rhs.getDescription()
     }
     
     public func mergeWithOther(other : Obstacle)
@@ -173,5 +229,18 @@ class Obstacle
         {
             maxPointBoundingBox.y=other.maxPointBoundingBox.y
         }
+    }
+    
+    public func getDescription() -> String
+    {
+        var description : String = ""
+        
+        description = "Obstacle BB:\n"
+        description += String(format: "Min: %f, %f\n", minPointBoundingBox.x, minPointBoundingBox.y)
+        description += String(format: "Max: %f, %f\n", maxPointBoundingBox.x, maxPointBoundingBox.y)
+        description += "World pos:\n"
+        description += String(format: "Min: %f, %f, %f\n", minWorldPosition.x, minWorldPosition.y, minWorldPosition.z)
+        description += String(format: "Max: %f, %f, %f\n", maxWorldPosition.x, maxWorldPosition.y, maxWorldPosition.z)
+        return description
     }
 }

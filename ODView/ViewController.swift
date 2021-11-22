@@ -12,8 +12,6 @@ class ViewController: UIViewController, ARSCNViewDelegate, UIGestureRecognizerDe
     
     private var walls : [UUID:SCNNode]!
     
-    private var boundingBoxPerAnchor : [UUID: [(CGPoint, CGPoint)]]!
-    
     private var boundingBoxes : [ObstacleBoundingBoxView]!
     
     private var planeQueue : DispatchQueue!
@@ -26,15 +24,20 @@ class ViewController: UIViewController, ARSCNViewDelegate, UIGestureRecognizerDe
     
     private var viewportSize : CGSize!
     
-    private var processing : Bool!
-    
     private var obstaclePerAnchor : [UUID: [Obstacle]]!
     
     private var colorPerAnchor : [UUID : UIColor]!
-    //Facce e performance: Facce totali, Facce filtrate, Filtering,Clustering, Creazione MBR, Merging
-    private var performances : [(Int, Int, Float, Float, Float, Float)]!
+    
+    private var refNode : SCNNode!
+    
+    //Facce e performance: Facce totali, Totale tempo
+    private var performances : [(Int, Float)]!
     
     @IBOutlet private var clusterLbl : UILabel!
+    
+    @IBOutlet private var anchorLbl : UILabel!
+    
+    @IBOutlet private var wallLbl : UILabel!
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -69,11 +72,12 @@ class ViewController: UIViewController, ARSCNViewDelegate, UIGestureRecognizerDe
         content="Facce Totali;Facce Filtrate;Tempo filtraggio;Tempo clustering;Tempo MBR;Tempo merge"
         for record in performances
         {
-            content=content+"\n"+String(format: "%d;%d;%.2f;%.2f;%.2f;%.2f", record.0, record.1, record.2, record.3, record.4, record.5)
+            content=content+"\n"+String(format: "%d;%.2f", record.0, record.1)
         }
         do {
               try content.write(to: fileUrl, atomically: true, encoding: String.Encoding.utf8)
-        } catch let error as NSError
+        }
+        catch let error as NSError
         {
             print (error)
         }
@@ -81,8 +85,8 @@ class ViewController: UIViewController, ARSCNViewDelegate, UIGestureRecognizerDe
     
     func setupViewVariables()
     {
+        UIApplication.shared.isIdleTimerDisabled = true
         performances=[]
-        boundingBoxPerAnchor=[:]
         colorPerAnchor=[:]
         floors=[:]
         walls=[:]
@@ -90,7 +94,6 @@ class ViewController: UIViewController, ARSCNViewDelegate, UIGestureRecognizerDe
         obstacleQueue = DispatchQueue(label: "com.odview.obstaclequeue.serial", qos: .userInteractive)
         lockQueue = DispatchQueue(label: "com.odview.lockqueue.serial")
         viewportSize = CGSize(width: 390, height: 763)
-        processing = false
         obstaclePerAnchor = [:]
     }
     
@@ -105,6 +108,8 @@ class ViewController: UIViewController, ARSCNViewDelegate, UIGestureRecognizerDe
         configuration.planeDetection = [.horizontal, .vertical]
         configuration.sceneReconstruction = .meshWithClassification
         arscnView.session.run(configuration)
+        refNode = SCNNode()
+        arscnView.scene.rootNode.addChildNode(refNode)
     }
     
     func setupBoundingBoxes()
@@ -181,35 +186,47 @@ class ViewController: UIViewController, ARSCNViewDelegate, UIGestureRecognizerDe
         return classification == .none || classification == .seat || classification == .table
     }
     
+    func calculateTriangleNormal(_ vertices : [SCNVector3]) -> SCNVector3
+    {
+        if(vertices.count<2) { return SCNVector3Zero }
+        let firstVector = vertices[1].getSimd()-vertices[0].getSimd()
+        let secondVector = vertices[2].getSimd()-vertices[0].getSimd()
+        let normal = cross(firstVector, secondVector)
+        return SCNVector3(normal)
+    }
+    
     func addFloorWallPlane(planeAnchor : ARPlaneAnchor, node : SCNNode)
     {
         let width = CGFloat(planeAnchor.extent.x)
         let height = CGFloat(planeAnchor.extent.z)
-        //If the area is too small, we discard it
-        if(Float(width*height)<Constants.AREA_THRESHOLD)
-        {
-            return
-        }
         let plane: SCNPlane = SCNPlane(width: width, height: height)
         let planeNode = SCNNode(geometry: plane)
         planeNode.simdPosition = planeAnchor.center
         planeNode.eulerAngles.x = -.pi / 2
+        
+        if(colorPerAnchor[planeAnchor.identifier]==nil)
+        {
+            let color = CGColor(red: CGFloat.random(in: 0..<255.0)/255.0, green: CGFloat.random(in: 0..<255.0)/255.0, blue: CGFloat.random(in: 0..<255.0)/255.0, alpha: 0.8)
+            colorPerAnchor[planeAnchor.identifier]=UIColor(cgColor: color)
+        }
+        
         //Understand if its floor or ceiling
         if(planeAnchor.alignment == .horizontal)
         {
             guard let frame = arscnView.session.currentFrame else { return }
-            let cameraPosition = SCNVector3(frame.camera.transform.columns.3.x, frame.camera.transform.columns.3.y, frame.camera.transform.columns.3.z)
+            let cameraWorldPosition = SCNVector3(frame.camera.transform.columns.3.x, frame.camera.transform.columns.3.y, frame.camera.transform.columns.3.z)
             let planeWorldPosition = SCNVector3(node.simdConvertPosition(planeNode.position.getSimd(), to: nil))
-            if(cameraPosition.y<planeWorldPosition.y)
+            if(cameraWorldPosition.y<planeWorldPosition.y)
             {
+                node.removeFromParentNode()
                 return
             }
-            planeNode.geometry?.firstMaterial?.diffuse.contents=CGColor(red: 1, green: 0, blue: 1, alpha: 0.8)
+            planeNode.geometry?.firstMaterial?.diffuse.contents=UIColor(cgColor: CGColor(red: 0, green: 1, blue: 1, alpha: 0.8))
             floors[planeAnchor.identifier]=planeNode
         }
         else
         {
-            planeNode.geometry?.firstMaterial?.diffuse.contents=CGColor(red: 0, green: 1, blue: 0, alpha: 0.8)
+            planeNode.geometry?.firstMaterial?.diffuse.contents=UIColor(cgColor: CGColor(red: 0, green: 1, blue: 0, alpha: 0.8))
             walls[planeAnchor.identifier]=planeNode
         }
         
@@ -222,7 +239,293 @@ class ViewController: UIViewController, ARSCNViewDelegate, UIGestureRecognizerDe
         let endPoint = SCNVector3(x: planeWorldPosition.x+normal.x, y: planeWorldPosition.y+normal.y, z: planeWorldPosition.z+normal.z)
         let line = createLine(vertices: [planeWorldPosition, SCNVector3(x: endPoint.x, y: endPoint.y, z: endPoint.z), endPoint], indices: [0,1], node: node)
         node.addChildNode(planeNode)
-        node.addChildNode(line)
+    }
+    
+    func findObstacles(node: SCNNode, anchor: ARAnchor, renderer: SCNSceneRenderer)
+    {
+        let meshAnchor = anchor as! ARMeshAnchor
+        var walls : [(SCNVector3, SCNVector3)] = []
+        var floors : [(SCNVector3, SCNVector3)] = []
+        guard let pointOfView = renderer.pointOfView else { return }
+        //Recupero normale e posizione di tutti i muri e pavimenti
+        planeQueue.sync
+        { [weak self] in
+            for uuid in self!.walls.keys
+            {
+                if(self!.walls[uuid] != nil)
+                {
+                    let wall = self!.walls[uuid]!
+                    //Rimuovo i muri non più visibili
+                    if(!renderer.isNode(wall, insideFrustumOf: pointOfView))
+                    {
+                        wall.removeFromParentNode()
+                        self!.walls[uuid]=nil
+                        continue
+                    }
+                    var normal = SCNVector3(wall.simdConvertVector(simd_float3(x: 0, y: 0, z: 1), to: nil))
+                    normal = normal.normalize()
+                    let wallWorldPosition = wall.worldPosition
+                    walls.append((wallWorldPosition, normal))
+                }
+            }
+            for uuid in self!.floors.keys
+            {
+                if(self!.floors[uuid] != nil)
+                {
+                    let floor = self!.floors[uuid]!
+                    //Rimuovo i piani pavimento non più visibili
+                    if(!renderer.isNode(floor, insideFrustumOf: pointOfView))
+                    {
+                        floor.removeFromParentNode()
+                        self!.floors[uuid]=nil
+                        continue
+                    }
+                    var normal = SCNVector3(floor.simdConvertVector(simd_float3(x: 0, y: 0, z: 1), to: nil))
+                    normal = normal.normalize()
+                    let floorWorldPosition = floor.worldPosition
+                    floors.append((floorWorldPosition, normal))
+                }
+            }
+        }
+        //Eseguo l'obstacle detection a livello di ancora
+        obstacleQueue.async
+        { [weak self] in
+            guard let frame = self!.arscnView.session.currentFrame else
+            {
+                return
+            }
+            
+            var faceIndices : [Int] = []
+            
+            let cameraWorldPosition = SCNVector3(
+                x: frame.camera.transform.columns.3.x,
+                y: frame.camera.transform.columns.3.y,
+                z: frame.camera.transform.columns.3.z)
+            
+            let currentAnchorWorldPosition = SCNVector3(meshAnchor.transform.position)
+            
+            //L'ancora che voglio aggiungere è troppo distante
+            if(SCNVector3.distanceBetween(cameraWorldPosition, currentAnchorWorldPosition)>=Constants.MAX_ANCHOR_DISTANCE)
+            {
+                return
+            }
+            
+            var points : [SCNVector3] = []
+            var indices : [Int32] = []
+            
+            let color : UIColor!
+            if(self!.colorPerAnchor[anchor.identifier]==nil)
+            {
+                let color = CGColor(red: CGFloat.random(in: 0..<255.0)/255.0, green: CGFloat.random(in: 0..<255.0)/255.0, blue: CGFloat.random(in: 0..<255.0)/255.0, alpha: 1)
+                self!.colorPerAnchor[anchor.identifier] = UIColor(cgColor: color)
+            }
+            color = self!.colorPerAnchor[anchor.identifier]
+            let meshGeometry = meshAnchor.geometry
+            
+            //MARK: Filtro facce
+            for i in 0..<meshAnchor.geometry.faces.count
+            {
+                let triangleLocalPosition = meshAnchor.geometry.centerOf(faceWithIndex: i)
+                let triangleWorldPosition = node.convertPosition(triangleLocalPosition, to: nil)
+                let triangleScreenPoint = frame.camera.projectPoint(triangleWorldPosition.getSimd(), orientation: .portrait, viewportSize: self!.viewportSize)
+                
+                //Rimuovo i triangolo fuori dallo schermo
+                if(triangleScreenPoint.x<0 || self!.viewportSize.width<triangleScreenPoint.x || triangleScreenPoint.y<0 || triangleScreenPoint.y>self!.viewportSize.height)
+                {
+                    continue
+                }
+                //Rimuovo i triangoli la cui classificazione non ci interessa (muri, pavimento)
+                let classification=meshAnchor.geometry.classificationOf(faceWithIndex: i)
+                
+                if(!self!.considerTriangle(classification)) { continue }
+                
+                let vertices = meshGeometry.verticesOf(faceWithIndex: i).map
+                {
+                    SCNVector3(x: $0.0, y: $0.1, z: $0.2)
+                }
+                
+                let verticesWorldPosition = vertices.compactMap
+                {
+                    node.convertPosition($0, to: nil)
+                }
+                
+                /*let triangleWorldNormal = self!.calculateTriangleNormal(verticesWorldPosition)
+                
+                if(triangleWorldNormal.dotProduct(otherPoint: SCNVector3(x:0, y: 1, z: 0))>=0.5)
+                {
+                    continue
+                }*/
+                
+                var shouldContinue = false
+                
+                //Rimuovo triangoli vicini ai muri o dietro ai muri
+                for wall in walls
+                {
+                    let normal = wall.1.getSimd()
+                    let relativePosition = triangleWorldPosition.getSimd()-wall.0.getSimd()
+                    let distance = simd_dot(normal, relativePosition)
+                    if(abs(distance)<Constants.PLANE_DISTANCE_THRESHOLD)
+                    {
+                        shouldContinue=true
+                        break
+                    }
+                }
+                
+                if(shouldContinue) { continue }
+                
+                //Rimuovo triangoli del pavimento e sotto il pavimento
+                for floor in floors
+                {
+                    let normal = floor.1.getSimd()
+                    let relativePosition = triangleWorldPosition.getSimd()-floor.0.getSimd()
+                    let distance = simd_dot(normal, relativePosition)
+                    if(abs(distance)<Constants.PLANE_DISTANCE_THRESHOLD)
+                    {
+                        shouldContinue=true
+                        break
+                    }
+                }
+                
+                if(shouldContinue) { continue }
+                
+                faceIndices.append(i)
+               
+                let verticesLocalPosition = vertices.compactMap
+                {
+                     node.convertPosition($0, to: node)
+                }
+                
+                points.append(verticesLocalPosition[0])
+                indices.append(Int32(points.count-1))
+                points.append(verticesLocalPosition[1])
+                indices.append(Int32(points.count-1))
+                points.append(verticesLocalPosition[2])
+                indices.append(Int32(points.count-1))
+            }
+            
+            node.geometry = self!.createGeometry(vertices: points, indices: indices, primitiveType: .triangles)
+            node.geometry?.firstMaterial?.diffuse.contents=color
+            
+            var faceClusters : [Set<UInt32>] = []
+            var pointClusters : [Set<UInt32>] = []
+            
+            //MARK: Clustering
+            for faceIndex in faceIndices
+            {
+                let vertexIndices = meshAnchor.geometry.vertexIndicesOf(faceWithIndex: faceIndex)
+                
+                var pointClustersConnected : [Set<UInt32>] = []
+                var faceClustersConnected : [Set<UInt32>] = []
+                
+                for i in stride(from: pointClusters.count-1, through: 0, by: -1)
+                {
+                    if(pointClusters[i].contains(vertexIndices[0]) || pointClusters[i].contains(vertexIndices[1]) || pointClusters[i].contains(vertexIndices[2]))
+                    {
+                        //Allora il vertice è connesso a uno dei cluster esistenti
+                        pointClustersConnected.append(pointClusters[i])
+                        faceClustersConnected.append(faceClusters[i])
+                        pointClusters.remove(at: i)
+                        faceClusters.remove(at: i)
+                    }
+                }
+                
+                var newPointCluster : Set<UInt32> = []
+                var newFaceCluster : Set<UInt32> = []
+                
+                if(pointClustersConnected.count != 0)
+                {
+                    //Altrimenti bisogna fare il merge di tutti i cluster connessi
+                    for i in 0..<pointClustersConnected.count
+                    {
+                        newPointCluster=newPointCluster.union(pointClustersConnected[i])
+                        newFaceCluster=newFaceCluster.union(faceClustersConnected[i])
+                    }
+                }
+                newPointCluster.insert(vertexIndices[0])
+                newPointCluster.insert(vertexIndices[1])
+                newPointCluster.insert(vertexIndices[2])
+                newFaceCluster.insert(UInt32(faceIndex))
+                pointClusters.append(newPointCluster)
+                faceClusters.append(newFaceCluster)
+            }
+            
+            var obstacles : [Obstacle] = []
+            
+            //MARK: Generazione mbr
+            for i in stride(from: faceClusters.count-1, through: 0, by: -1)
+            {
+                if(faceClusters[i].count<Constants.MIN_NUMBER_TRIANGLES_FOR_CLUSTER)
+                {
+                    faceClusters.remove(at: i)
+                    pointClusters.remove(at: i)
+                    continue
+                }
+                
+                let faceCluster = faceClusters[i]
+                let obstacle = Obstacle()
+                for faceIndex in faceCluster
+                {
+                    let vertices = meshGeometry.verticesOf(faceWithIndex: Int(faceIndex)).map
+                    {
+                        SCNVector3(x: $0.0, y: $0.1, z: $0.2)
+                    }
+                    
+                    let worldVertices = vertices.compactMap
+                    {
+                        node.convertPosition($0, to: nil)
+                    }
+                    
+                    for j in 0..<3
+                    {
+                        obstacle.updateBoundaries(frame: frame, viewportSize: self!.viewportSize, worldPoint: worldVertices[j])
+                    }
+                }
+                obstacles.append(obstacle)
+            }
+            
+            //MARK: Merge MBR generate a partire da questa ancora
+            self!.merge(obstacles: &obstacles)
+            
+            self!.lockQueue.async
+            { [weak self] in
+                self!.obstaclePerAnchor[anchor.identifier]=obstacles
+            }
+        }
+    }
+    
+    func merge(obstacles : inout [Obstacle])
+    {
+        var i = 0
+        while(i<obstacles.count)
+        {
+            var obstacle = obstacles[i]
+            var j = obstacles.count-1
+            while(j>i)
+            {
+                var otherObstacle = obstacles[j]
+                if(obstacle.getDistanceWithOtherObstacle(other: otherObstacle)<=Constants.MERGE_DISTANCE)
+                {
+                    //Se la distanza tra le due mbr è minore della
+                    //merge distance, allora eseguo il merge tra i
+                    //2 oggetti.
+                    obstacle.mergeWithOther(other: otherObstacle)
+                    obstacles[i] = obstacle
+                    //Rimuovo ostacolo non necessario.
+                    obstacles.remove(at: j)
+                    //Riprendo lo scan per i merge dall'inizio.
+                    i=0
+                    j=obstacles.count-1
+                    obstacle = obstacles[i]
+                    otherObstacle = obstacles[j]
+                }
+                else
+                {
+                    //Altrimenti passo all'ostacolo successivo
+                    j-=1
+                }
+            }
+            i=i+1
+        }
     }
     
     func renderer(_ renderer: SCNSceneRenderer, didUpdate node: SCNNode, for anchor: ARAnchor)
@@ -237,279 +540,12 @@ class ViewController: UIViewController, ARSCNViewDelegate, UIGestureRecognizerDe
         }
         else if((anchor as? ARMeshAnchor) != nil)
         {
-            //Posizione e normale di ogni muro o piano
-            var walls : [(SCNVector3, SCNVector3)] = []
-            var floors : [(SCNVector3, SCNVector3)] = []
-            
-            planeQueue.sync
-            { [weak self] in
-                guard self != nil else { return }
-                
-                for uuid in self!.walls.keys
-                {
-                    if(self!.walls[uuid] != nil)
-                    {
-                        let wall = self!.walls[uuid]!
-                        var normal = SCNVector3(wall.simdConvertVector(simd_float3(x: 0, y: 0, z: 1), to: nil))
-                        normal = normal.normalize()
-                        let wallWorldPosition = wall.worldPosition
-                        walls.append((wallWorldPosition, normal))
-                    }
-                }
-                for uuid in self!.floors.keys
-                {
-                    if(self!.floors[uuid] != nil)
-                    {
-                        let floor = self!.floors[uuid]!
-                        var normal = SCNVector3(floor.simdConvertVector(simd_float3(x: 0, y: 0, z: 1), to: nil))
-                        normal = normal.normalize()
-                        let floorWorldPosition = floor.worldPosition
-                        floors.append((floorWorldPosition, normal))
-                    }
-                }
-            }
-            
-            
-            obstacleQueue.async
-            { [weak self] in
-                let begin = DispatchTime.now()
-                let meshAnchor = anchor as! ARMeshAnchor
-                
-                guard let frame = self!.arscnView.session.currentFrame else
-                {
-                    self!.processing=false
-                    return
-                }
-                
-                var faceIndices : [Int] = []
-                
-                let cameraWorldPosition = SCNVector3(
-                    x: frame.camera.transform.columns.3.x,
-                    y: frame.camera.transform.columns.3.y,
-                    z: frame.camera.transform.columns.3.z)
-                
-                let currentAnchorWorldPosition = SCNVector3(meshAnchor.transform.position)
-                
-                //L'ancora che voglio aggiungere è troppo distante
-                if(SCNVector3.distanceBetween(cameraWorldPosition, currentAnchorWorldPosition)>=Constants.MAX_ANCHOR_DISTANCE)
-                {
-                    self!.processing=false
-                    return
-                }
-                
-                var points : [SCNVector3] = []
-                var indices : [Int32] = []
-                
-                let color : UIColor!
-                if(self!.colorPerAnchor[anchor.identifier]==nil)
-                {
-                    let color = CGColor(red: CGFloat.random(in: 0..<255.0)/255.0, green: CGFloat.random(in: 0..<255.0)/255.0, blue: CGFloat.random(in: 0..<255.0)/255.0, alpha: 0.8)
-                    self!.colorPerAnchor[anchor.identifier] = UIColor(cgColor: color)
-                    print("Colore ",color, " per ancora:", anchor.identifier)
-                }
-                color = self!.colorPerAnchor[anchor.identifier]
-                let meshGeometry = meshAnchor.geometry
-                
-                for i in 0..<meshAnchor.geometry.faces.count
-                {
-                    let triangleLocalPosition = meshAnchor.geometry.centerOf(faceWithIndex: i)
-                    let triangleWorldPosition = node.convertPosition(triangleLocalPosition, to: nil)
-                    let triangleScreenPoint = frame.camera.projectPoint(triangleWorldPosition.getSimd(), orientation: .portrait, viewportSize: self!.viewportSize)
-                    
-                    //Removing all triangles outside the screen
-                    if(triangleScreenPoint.x<0 || self!.viewportSize.width<triangleScreenPoint.x || triangleScreenPoint.y<0 || triangleScreenPoint.y>self!.viewportSize.height)
-                    {
-                        continue
-                    }
-                    let classification=meshAnchor.geometry.classificationOf(faceWithIndex: i)
-                    
-                    if(!self!.considerTriangle(classification)) { continue }
-                        
-                    var shouldContinue = false
-                    
-                    //Rimuovo triangoli dei muri
-                    for wall in walls
-                    {
-                        let normal = wall.1.getSimd()
-                        let relativePosition = triangleWorldPosition.getSimd()-wall.0.getSimd()
-                        let distance = simd_dot(normal, relativePosition)
-                        if(abs(distance)<Constants.PLANE_DISTANCE_THRESHOLD)
-                        {
-                            shouldContinue=true
-                            break
-                        }
-                    }
-                    
-                    if(shouldContinue) { continue }
-                    
-                    //Rimuovo triangoli del pavimento
-                    for floor in floors
-                    {
-                        let normal = floor.1.getSimd()
-                        let relativePosition = triangleWorldPosition.getSimd()-floor.0.getSimd()
-                        let distance = simd_dot(normal, relativePosition)
-                        if(abs(distance)<Constants.PLANE_DISTANCE_THRESHOLD)
-                        {
-                            shouldContinue=true
-                            break
-                        }
-                    }
-                    
-                    if(shouldContinue) { continue }
-                    
-                    faceIndices.append(i)
-                    
-                    let vertices = meshGeometry.verticesOf(faceWithIndex: i).map
-                    {
-                        SCNVector3(x: $0.0, y: $0.1, z: $0.2)
-                    }
-                    
-                    let verticesNode = vertices.compactMap
-                    {
-                         node.convertPosition($0, to: node)
-                    }
-                    
-                    points.append(verticesNode[0])
-                    indices.append(Int32(points.count-1))
-                    points.append(verticesNode[1])
-                    indices.append(Int32(points.count-1))
-                    points.append(verticesNode[2])
-                    indices.append(Int32(points.count-1))
-                }
-                
-                node.geometry = self!.createGeometry(vertices: points, indices: indices, primitiveType: .triangles)
-                node.geometry?.firstMaterial?.diffuse.contents=color
-                
-                var faceClusters : [Set<UInt32>] = []
-                var pointClusters : [Set<UInt32>] = []
-                
-                for faceIndex in faceIndices
-                {
-                    let vertexIndices = meshAnchor.geometry.vertexIndicesOf(faceWithIndex: faceIndex)
-                    
-                    var pointClustersConnected : [Set<UInt32>] = []
-                    var faceClustersConnected : [Set<UInt32>] = []
-                    
-                    for i in stride(from: pointClusters.count-1, through: 0, by: -1)
-                    {
-                        if(pointClusters[i].contains(vertexIndices[0]) || pointClusters[i].contains(vertexIndices[1]) || pointClusters[i].contains(vertexIndices[2]))
-                        {
-                            //Allora il vertice è connesso a uno dei cluster esistenti
-                            pointClustersConnected.append(pointClusters[i])
-                            faceClustersConnected.append(faceClusters[i])
-                            pointClusters.remove(at: i)
-                            faceClusters.remove(at: i)
-                        }
-                    }
-                    
-                    var newPointCluster : Set<UInt32> = []
-                    var newFaceCluster : Set<UInt32> = []
-                    
-                    if(pointClustersConnected.count != 0)
-                    {
-                        //Altrimenti bisogna fare il merge di tutti i cluster connessi
-                        for i in 0..<pointClustersConnected.count
-                        {
-                            newPointCluster=newPointCluster.union(pointClustersConnected[i])
-                            newFaceCluster=newFaceCluster.union(faceClustersConnected[i])
-                        }
-                    }
-                    newPointCluster.insert(vertexIndices[0])
-                    newPointCluster.insert(vertexIndices[1])
-                    newPointCluster.insert(vertexIndices[2])
-                    newFaceCluster.insert(UInt32(faceIndex))
-                    pointClusters.append(newPointCluster)
-                    faceClusters.append(newFaceCluster)
-                }
-                
-                var obstacles : [Obstacle] = []
-                //Per ogni cluster genero la relativa mbr
-                for i in stride(from: faceClusters.count-1, through: 0, by: -1)
-                {
-                    if(faceClusters[i].count<Constants.MIN_NUMBER_TRIANGLES_FOR_CLUSTER)
-                    {
-                        faceClusters.remove(at: i)
-                        pointClusters.remove(at: i)
-                        continue
-                    }
-                    let faceCluster = faceClusters[i]
-                    var indexHolder : Set<UInt32> = []
-                    let obstacle = Obstacle()
-                    //Generazione mbr e relativi centroidi
-                    for faceIndex in faceCluster
-                    {
-                        let vertices = meshGeometry.verticesOf(faceWithIndex: Int(faceIndex)).map
-                        {
-                            SCNVector3(x: $0.0, y: $0.1, z: $0.2)
-                        }
-                        
-                        let worldVertices = vertices.compactMap
-                        {
-                            node.convertPosition($0, to: nil)
-                        }
-                        
-                        let vertexIndices = meshGeometry.vertexIndicesOf(faceWithIndex: Int(faceIndex))
-                        
-                        for j in 0..<vertexIndices.count-1
-                        {
-                            let index = vertexIndices[j]
-                            if(!indexHolder.contains(index))
-                            {
-                                indexHolder.insert(index)
-                                obstacle.updateBoundaries(frame: frame, viewportSize: self!.viewportSize, worldPoint: worldVertices[j])
-                            }
-                        }
-                    }
-                    obstacles.append(obstacle)
-                }
-                
-                //Fondo le mbr vicine generate a partire dalla stessa ancora
-                var i = 0
-                while(i<obstacles.count)
-                {
-                    let obstacle = obstacles[i]
-                    var j = obstacles.count-1
-                    while(j>i)
-                    {
-                        let otherObstacle = obstacles[j]
-                        if(obstacle.getDistanceWithOtherObstacle(other: otherObstacle)<=Constants.MERGE_DISTANCE)
-                        {
-                            //Se la distanza tra le due mbr è minore della
-                            //merge distance, allora eseguo il merge tra i
-                            //2 oggetti.
-                            obstacle.mergeWithOther(other: otherObstacle)
-                            obstacles[i] = obstacle
-                            //Rimuovo ostacolo non necessario.
-                            obstacles.remove(at: j)
-                            //Riprendo lo scan per i merge dall'inizio.
-                            i=0
-                            j=obstacles.count-1
-                        }
-                        else
-                        {
-                            //Altrimenti passo all'ostacolo successivo
-                            j-=1
-                        }
-                    }
-                    i=i+1
-                }
-                
-                self!.lockQueue.async
-                { [weak self] in
-                    self!.obstaclePerAnchor[anchor.identifier]=obstacles
-                }
-                
-                self!.processing=false
-                let end=DispatchTime.now()
-                
-                let time = Float(end.uptimeNanoseconds - begin.uptimeNanoseconds) / 1_000_000_000
-            }
-            
-            
+            findObstacles(node: node, anchor: anchor, renderer: renderer)
         }
     }
     
-    func renderer(_ renderer: SCNSceneRenderer, nodeFor anchor: ARAnchor) -> SCNNode? {
+    func renderer(_ renderer: SCNSceneRenderer, nodeFor anchor: ARAnchor) -> SCNNode?
+    {
         let node = SCNNode()
         node.transform=SCNMatrix4(anchor.transform)
         return node
@@ -517,507 +553,88 @@ class ViewController: UIViewController, ARSCNViewDelegate, UIGestureRecognizerDe
     
     func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval)
     {
-        var currentObstacles : [Obstacle] = []
-        var identifiers : [String] = []
+        guard let frame = arscnView.session.currentFrame else { return }
+        var counter = 0
+        var anchorCounter = 0
+        var allObstacles : [Obstacle] = []
         
         lockQueue.sync
         { [weak self] in
+            let arMeshAnchors = frame.anchors.compactMap
+            {
+                $0 as? ARMeshAnchor
+            }
+            //Rimuovo i nodi non visibili
+            let pointOfView = renderer.pointOfView!
+            for arMeshAnchor in arMeshAnchors
+            {
+                let obstacleNode = self!.arscnView.node(for: arMeshAnchor)
+                if((obstacleNode != nil &&
+                    !renderer.isNode(obstacleNode!, insideFrustumOf: pointOfView)) || obstacleNode==nil)
+                {
+                    self!.obstaclePerAnchor[arMeshAnchor.identifier]=nil
+                }
+                else
+                {
+                    continue
+                }
+            }
+            
             for key in self!.obstaclePerAnchor.keys
             {
                 guard let obstacles = self!.obstaclePerAnchor[key] else { continue }
-                var k = key as! UUID
-                var kString = String(k.uuidString.prefix(5))
-                identifiers = identifiers + Array(repeating: kString, count:  obstacles.count)
-                currentObstacles = currentObstacles + obstacles
+                allObstacles = allObstacles + obstacles
+                counter += obstacles.count
             }
             
+            anchorCounter=self!.obstaclePerAnchor.keys.count
         }
         
-        if(currentObstacles.count>=Constants.MAX_OBSTACLE_NUMBER)
+        //MARK: Merge close obstacle
+        merge(obstacles: &allObstacles)
+        
+        if(allObstacles.count>=Constants.MAX_OBSTACLE_NUMBER)
         {
-            for i in stride(from: currentObstacles.count-1, to: 49, by: -1)
+            for i in stride(from: allObstacles.count-1, to: Constants.MAX_OBSTACLE_NUMBER-1, by: -1)
             {
-                currentObstacles.remove(at: i)
+                allObstacles.remove(at: i)
             }
         }
+        
+        //DEBUG
+        /*for i in stride(from: refNode.childNodes.count-1, through: 0, by: -1)
+        {
+            refNode.childNodes[i].removeFromParentNode()
+        }
+        
+        for obstacle in allObstacles
+        {
+            let min = SCNNode(geometry: SCNSphere(radius: 0.01))
+                        min.geometry?.firstMaterial?.diffuse.contents = UIColor.blue
+            min.worldPosition = obstacle.getMinWorldPosition()
+            refNode.addChildNode(min)
+                        
+            let max = SCNNode(geometry: SCNSphere(radius: 0.01))
+                        max.geometry?.firstMaterial?.diffuse.contents = UIColor.red
+            max.worldPosition = obstacle.getMaxWorldPosition()
+            refNode.addChildNode(max)
+        }*/
         
         DispatchQueue.main.sync
         { [weak self] in
+            clusterLbl.text = String(format:"Clusters: %d", counter)
+            anchorLbl.text = String(format:"Anchors: %d", anchorCounter)
             var i = 0
-            
-            for obstacle in currentObstacles
+            for obstacle in allObstacles
             {
                 let frame = obstacle.getFrame()
-                self!.boundingBoxes[i].show(frame: frame, label: identifiers[i], color: UIColor.blue)
+                self!.boundingBoxes[i].show(frame: frame, label: "Obstacle", color: UIColor.blue)
                 i+=1
             }
-            for i in stride(from: i, to: self!.boundingBoxes.count, by: 1)
+            for i in stride(from: allObstacles.count, to: boundingBoxes.count, by: 1)
             {
                 self!.boundingBoxes[i].hide()
             }
-        }
-        
-        //Position and normal for all walls and floors
-        /*var walls : [(SCNVector3, SCNVector3)] = []
-        var floors : [(SCNVector3, SCNVector3)] = []
-        
-        planeQueue.sync
-        { [weak self] in
-            guard self != nil else { return }
-            
-            for uuid in self!.walls.keys
-            {
-                if(self!.walls[uuid] != nil)
-                {
-                    let wall = self!.walls[uuid]!
-                    var normal = SCNVector3(wall.simdConvertVector(simd_float3(x: 0, y: 0, z: 1), to: nil))
-                    normal = normal.normalize()
-                    let wallWorldPosition = wall.worldPosition
-                    walls.append((wallWorldPosition, normal))
-                }
-            }
-            for uuid in self!.floors.keys
-            {
-                if(self!.floors[uuid] != nil)
-                {
-                    let floor = self!.floors[uuid]!
-                    var normal = SCNVector3(floor.simdConvertVector(simd_float3(x: 0, y: 0, z: 1), to: nil))
-                    normal = normal.normalize()
-                    let floorWorldPosition = floor.worldPosition
-                    floors.append((floorWorldPosition, normal))
-                }
-            }
-        }
-        
-        obstacleQueue.async
-        { [weak self] in
-            guard self != nil else { return }
-            
-            var filteringTime : Float = 0
-            var clusteringTime : Float = 0
-            var mbrCreationTime : Float = 0
-            var mergeTime : Float = 0
-            
-            guard let frame = self!.arscnView.session.currentFrame else { return }
-            
-            let anchors = frame.anchors.filter
-            {
-                ($0 as? ARMeshAnchor) != nil
-            }
-            
-            if(anchors.count==0) { return }
-            
-            if(floors.count==0 || walls.count==0) { return }
-            
-            let cameraWorldPosition = SCNVector3(
-                x: frame.camera.transform.columns.3.x,
-                y: frame.camera.transform.columns.3.y,
-                z: frame.camera.transform.columns.3.z)
-            
-            var points : [SCNVector3] = []
-            var indices : [Int32] = []
-            //Sono le facce che non vengono collassate a muri o pareti per anchor
-            var facesPerAnchor : [ARMeshAnchor : [Int]] = [:]
-            var faceTotal = 0
-            var faceFiltered = 0
-            
-            var begin = DispatchTime.now()
-            
-            //Filtraggio facce per ogni ancora armesh
-            for anchor in anchors
-            {
-                let meshAnchor = (anchor as? ARMeshAnchor)!
-                
-                facesPerAnchor[meshAnchor]=[]
-                
-                let currentAnchorWorldPosition = SCNVector3(meshAnchor.transform.position)
-                
-                if(SCNVector3.distanceBetween(cameraWorldPosition, currentAnchorWorldPosition)>=Constants.MAX_ANCHOR_DISTANCE) { continue }
-            
-                guard let meshNode = self!.arscnView.node(for: meshAnchor) else { continue }
-                
-                for i in 0..<meshAnchor.geometry.faces.count
-                {
-                    faceTotal+=1
-                    
-                    let triangleLocalPosition = meshAnchor.geometry.centerOf(faceWithIndex: i)
-                    let triangleWorldPosition = meshNode.convertPosition(triangleLocalPosition, to: nil)
-                    let triangleScreenPoint = frame.camera.projectPoint(triangleWorldPosition.getSimd(), orientation: .portrait, viewportSize: self!.viewportSize)
-                    
-                    //Removing all triangles outside the screen
-                    if(triangleScreenPoint.x<0 || self!.viewportSize.width<triangleScreenPoint.x || triangleScreenPoint.y<0 || triangleScreenPoint.y>self!.viewportSize.height)
-                    {
-                        continue
-                    }
-                    //Removing wall and floor triangles
-                    let classification=meshAnchor.geometry.classificationOf(faceWithIndex: i)
-                    
-                    if(!self!.considerTriangle(classification)) { continue }
-                        
-                    var shouldContinue = false
-                    
-                    //Removing wall triangles
-                    for wall in walls
-                    {
-                        let normal = wall.1.getSimd()
-                        let relativePosition = triangleWorldPosition.getSimd()-wall.0.getSimd()
-                        let distance = simd_dot(normal, relativePosition)
-                        if(abs(distance)<Constants.PLANE_DISTANCE_THRESHOLD)
-                        {
-                            shouldContinue=true
-                            break
-                        }
-                    }
-                    
-                    if(shouldContinue) { continue }
-                    
-                    //Removing floor triangles
-                    for floor in floors
-                    {
-                        let normal = floor.1.getSimd()
-                        let relativePosition = triangleWorldPosition.getSimd()-floor.0.getSimd()
-                        let distance = simd_dot(normal, relativePosition)
-                        if(abs(distance)<Constants.PLANE_DISTANCE_THRESHOLD)
-                        {
-                            shouldContinue=true
-                            break
-                        }
-                    }
-                    
-                    if(shouldContinue) { continue }
-                    
-                    faceFiltered+=1
-                    
-                    facesPerAnchor[meshAnchor]!.append(i)
-                    
-                    var triangleVertices = meshAnchor.geometry.verticesOf(faceWithIndex: i).compactMap({SCNVector3(x: $0.0, y: $0.1, z: $0.2)})
-                    triangleVertices[0] = meshNode.convertPosition(triangleVertices[0], to: nil)
-                    triangleVertices[1] = meshNode.convertPosition(triangleVertices[1], to: nil)
-                    triangleVertices[2] = meshNode.convertPosition(triangleVertices[2], to: nil)
-                    points.append(triangleVertices[0])
-                    indices.append(Int32(points.count-1))
-                    points.append(triangleVertices[1])
-                    indices.append(Int32(points.count-1))
-                    points.append(triangleVertices[2])
-                    indices.append(Int32(points.count-1))
-                }
-            }
-            
-            var end = DispatchTime.now()
-            
-            filteringTime = Float(end.uptimeNanoseconds - begin.uptimeNanoseconds) / 1_000_000_000
-            
-            //Debug mesh
-            /*let geometry = self!.createGeometry(vertices: points, indices: indices, primitiveType: .triangles)
-            geometry.materials.first?.diffuse.contents=CGColor(red: 1.0, green: 0, blue: 0, alpha: 0.8)
-            self!.arscnView.scene.rootNode.geometry = geometry*/
-            
-            var pointClusterPerAnchor : [ARMeshAnchor : [Set<UInt32>]] = [:]
-            var faceClusterPerAnchor : [ARMeshAnchor : [Set<UInt32>]] = [:]
-            
-            begin = DispatchTime.now()
-            
-            //Clustering
-            for meshAnchor in facesPerAnchor.keys
-            {
-                let currentAnchorWorldPosition = SCNVector3(meshAnchor.transform.position)
-                
-                if(SCNVector3.distanceBetween(cameraWorldPosition, currentAnchorWorldPosition)>=Constants.MAX_ANCHOR_DISTANCE) { continue }
-                
-                guard let faceIndices = facesPerAnchor[meshAnchor] else { continue }
-                
-                var faceClusters : [Set<UInt32>] = []
-                var pointClusters : [Set<UInt32>] = []
-                
-                for faceIndex in faceIndices
-                {
-                    let vertexIndices = meshAnchor.geometry.vertexIndicesOf(faceWithIndex: faceIndex)
-                    
-                    var pointClustersConnected : [Set<UInt32>] = []
-                    var faceClustersConnected : [Set<UInt32>] = []
-                    
-                    for i in stride(from: pointClusters.count-1, through: 0, by: -1)
-                    {
-                        if(pointClusters[i].contains(vertexIndices[0]) || pointClusters[i].contains(vertexIndices[1]) || pointClusters[i].contains(vertexIndices[2]))
-                        {
-                            //Allora il vertice è connesso a uno dei cluster esistenti
-                            pointClustersConnected.append(pointClusters[i])
-                            faceClustersConnected.append(faceClusters[i])
-                            pointClusters.remove(at: i)
-                            faceClusters.remove(at: i)
-                        }
-                    }
-                    
-                    var newPointCluster : Set<UInt32> = []
-                    var newFaceCluster : Set<UInt32> = []
-                    
-                    if(pointClustersConnected.count != 0)
-                    {
-                        //Altrimenti bisogna fare il merge di tutti i cluster connessi
-                        for i in 0..<pointClustersConnected.count
-                        {
-                            newPointCluster=newPointCluster.union(pointClustersConnected[i])
-                            newFaceCluster=newFaceCluster.union(faceClustersConnected[i])
-                        }
-                    }
-                    newPointCluster.insert(vertexIndices[0])
-                    newPointCluster.insert(vertexIndices[1])
-                    newPointCluster.insert(vertexIndices[2])
-                    newFaceCluster.insert(UInt32(faceIndex))
-                    pointClusters.append(newPointCluster)
-                    faceClusters.append(newFaceCluster)
-                }
-                faceClusterPerAnchor[meshAnchor]=faceClusters
-                pointClusterPerAnchor[meshAnchor]=pointClusters
-            }
-            
-            end = DispatchTime.now()
-            
-            clusteringTime = Float(end.uptimeNanoseconds - begin.uptimeNanoseconds) / 1_000_000_000
-            
-            var bounds : [(CGPoint, CGPoint)] = []
-            
-            var centroids : [SCNVector3] = []
-            
-            for i in stride(from: self!.refNode.childNodes.count-1, through: 0, by: -1)
-            {
-                self!.refNode.childNodes[i].removeFromParentNode()
-            }
-            
-            begin = DispatchTime.now()
-            
-            //Generazione mbr
-            for meshAnchor in faceClusterPerAnchor.keys
-            {
-                guard var faceClusters = faceClusterPerAnchor[meshAnchor] else { continue }
-                
-                guard var pointClusters = pointClusterPerAnchor[meshAnchor] else { continue }
-                
-                guard let meshNode = self!.arscnView.node(for: meshAnchor) else { continue }
-                
-                var points : [SCNVector3] = []
-                var indices : [Int32] = []
-                let color = CGColor(red: CGFloat.random(in: 0..<255.0)/255.0, green: CGFloat.random(in: 0..<255.0)/255.0, blue: CGFloat.random(in: 0..<255.0)/255.0, alpha: 0.8)
-                //let color = CGColor(red: 1, green: 0, blue: 0, alpha: 0.8)
-                
-                for i in stride(from: faceClusters.count-1, through: 0, by: -1)
-                {
-                    let faceCluster = faceClusters[i]
-                    
-                    if(faceCluster.count<Constants.MIN_NUMBER_TRIANGLES_FOR_CLUSTER)
-                    {
-                        faceClusters.remove(at: i)
-                        pointClusters.remove(at: i)
-                        continue
-                    }
-                    
-                    let (x, y, z) : (Float, Float, Float) = meshAnchor.geometry.verticesOf(faceWithIndex: Int(faceCluster.first!)).first!
-                    
-                    let vertex = meshNode.convertPosition(SCNVector3(x: x, y: y, z: z), to: nil)
-                    
-                    let screenPoint = frame.camera.projectPoint(vertex.getSimd(), orientation: .portrait, viewportSize: self!.viewportSize)
-                    
-                    //Bound salverà punto minimo e massimo delle varie mbr
-                    var bound = (screenPoint, screenPoint)
-                    var centroid = SCNVector3Zero
-                    
-                    //Generazione mbr e relativi centroidi
-                    for faceIndex in faceCluster
-                    {
-                        let vertices = meshAnchor.geometry.verticesOf(faceWithIndex: Int(faceIndex)).compactMap
-                        {
-                            SCNVector3(x: $0.0, y: $0.1, z: $0.2)
-                        }
-                        
-                        let worldVertices = vertices.compactMap
-                        {
-                            meshNode.convertPosition($0, to: nil)
-                        }
-                        
-                        points.append(worldVertices[0])
-                        indices.append((Int32)(points.count-1))
-                        points.append(worldVertices[1])
-                        indices.append((Int32)(points.count-1))
-                        points.append(worldVertices[2])
-                        indices.append((Int32)(points.count-1))
-                        
-                        //Aggiorno il centroid
-                        centroid.x += worldVertices[0].x
-                        centroid.y += worldVertices[0].y
-                        centroid.z += worldVertices[0].z
-                        
-                        centroid.x += worldVertices[1].x
-                        centroid.y += worldVertices[1].y
-                        centroid.z += worldVertices[1].z
-                        
-                        centroid.x += worldVertices[2].x
-                        centroid.y += worldVertices[2].y
-                        centroid.z += worldVertices[2].z
-                        
-                        let screenVertices = worldVertices.compactMap
-                        {
-                            frame.camera.projectPoint($0.getSimd(), orientation: .portrait, viewportSize: self!.viewportSize)
-                        }
-                        for screenVertex in screenVertices
-                        {
-                            if(screenVertex.x<bound.0.x)
-                            {
-                                bound.0.x=screenVertex.x
-                            }
-                            if(screenVertex.y<bound.0.y)
-                            {
-                                bound.0.y=screenVertex.y
-                            }
-                            if(screenVertex.x>bound.1.x)
-                            {
-                                bound.1.x=screenVertex.x
-                            }
-                            if(screenVertex.y>bound.1.y)
-                            {
-                                bound.1.y=screenVertex.y
-                            }
-                        }
-                    }
-                    centroid.x/=Float(faceCluster.count)
-                    centroid.y/=Float(faceCluster.count)
-                    centroid.z/=Float(faceCluster.count)
-                    bounds.append(bound)
-                    centroids.append(centroid)
-                    
-                    let node = SCNNode(geometry: self!.createGeometry(vertices: points, indices: indices, primitiveType: .triangles))
-                    node.geometry?.firstMaterial?.diffuse.contents = UIColor(cgColor: color)
-                    self!.refNode.addChildNode(node)
-                }
-            }
-            
-            end = DispatchTime.now()
-            
-            mbrCreationTime = Float(end.uptimeNanoseconds - begin.uptimeNanoseconds) / 1_000_000_000
-            
-            begin = DispatchTime.now()
-            
-            print("Centroids before merge:")
-            for centroid in centroids
-            {
-                print(centroid)
-            }
-            
-            //Merge centroidi vicini vicine
-            var i = 0
-            while(i>0)
-            {
-                var j = 0
-                while(j<i)
-                {
-                    if(SCNVector3.distanceBetween(centroids[i], centroids[j])<=Constants.CLUSTER_MERGE_DISTANCE)
-                    {
-                        print("Merge between:", centroids[i], centroids[j])
-                        var newCentroid = centroids[i]
-                        //Calcolo il nuovo centroide
-                        newCentroid.x += centroids[j].x
-                        newCentroid.y += centroids[j].y
-                        newCentroid.z += centroids[j].z
-                        newCentroid.x /= 2.0
-                        newCentroid.y /= 2.0
-                        newCentroid.z /= 2.0
-                        //Calcolo la nuova mbr
-                        var bound = bounds[i]
-                        let otherBound = bounds[j]
-                        if(bound.0.x>otherBound.0.x)
-                        {
-                            bound.0.x=otherBound.0.x
-                        }
-                        if(bound.0.y>otherBound.0.y)
-                        {
-                            bound.0.y=otherBound.0.y
-                        }
-                        if(bound.1.x<otherBound.1.x)
-                        {
-                            bound.1.x=otherBound.1.x
-                        }
-                        if(bound.1.y<otherBound.1.y)
-                        {
-                            bound.1.y=otherBound.1.y
-                        }
-                        centroids[i]=newCentroid
-                        bounds[i]=bound
-                        bounds.remove(at: j)
-                        centroids.remove(at: j)
-                        i=centroids.count-1
-                        j=0
-                        print("New centroid:", newCentroid)
-                    }
-                    else
-                    {
-                        j+=1
-                    }
-                }
-                i-=1
-            }
-            
-            print("Centroids after merge:")
-            for centroid in centroids
-            {
-                print(centroid)
-            }
-            
-            end = DispatchTime.now()
-            
-            mergeTime = Float(end.uptimeNanoseconds - begin.uptimeNanoseconds) / 1_000_000_000
-            
-            self!.performances.append((faceTotal, faceFiltered, filteringTime, clusteringTime, mbrCreationTime, mergeTime))
-            
-            DispatchQueue.main.async
-            {
-                self!.clusterLbl.text = String(format:"Clusters: %d", bounds.count)
-            }
-            
-            //Visualizzo mbr trovate
-            for i in 0..<bounds.count
-            {
-                let bound = bounds[i]
-                let width = bound.1.x - bound.0.x
-                let height = bound.1.y - bound.0.y
-                let frame = CGRect(x: bound.0.x, y: bound.0.y, width: width, height: height)
-                DispatchQueue.main.async
-                { [weak self] in
-                    guard self != nil else { return }
-                    self!.boundingBoxes[i].show(frame: frame, color: UIColor.white)
-                }
-                let node = SCNNode(geometry: SCNSphere(radius: 0.1))
-                node.geometry?.firstMaterial?.diffuse.contents = UIColor.blue
-                self!.refNode.addChildNode(node)
-                node.worldPosition = centroids[i]
-            }
-            
-            if(0<=bounds.count && bounds.count<Constants.MAX_OBSTACLE_NUMBER)
-            {
-                //Nascondo le mbr non usate
-                for i in bounds.count..<Constants.MAX_OBSTACLE_NUMBER
-                {
-                    DispatchQueue.main.async
-                    { [weak self] in
-                        self!.boundingBoxes[i].hide()
-                    }
-                }
-            }
-        }*/
-    }
-    
-    func renderer(_ renderer: SCNSceneRenderer, didRemove node: SCNNode, for anchor: ARAnchor)
-    {
-        guard let planeAnchor = anchor as? ARPlaneAnchor else { return }
-        
-        planeQueue.async
-        { [weak self] in
-            guard self != nil else { return }
-            
-            var node = self!.floors[planeAnchor.identifier]
-            if(node != nil) { node!.removeFromParentNode() }
-            node = self!.walls[planeAnchor.identifier]
-            if (node != nil) { node!.removeFromParentNode() }
-            self!.floors.removeValue(forKey: planeAnchor.identifier)
-            self!.walls.removeValue(forKey: planeAnchor.identifier)
         }
     }
 }

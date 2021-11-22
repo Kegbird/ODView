@@ -52,7 +52,7 @@ class ObstacleBoundingBoxView
         let textRect = label.boundingRect(with: CGSize(width: 100, height: 100),
                                           options: .usesFontLeading,
                                           attributes: attributes, context: nil)
-        let textSize = CGSize(width: textRect.width + 12, height: textRect.height + 12)
+        let textSize = CGSize(width: textRect.width, height: textRect.height)
         let textOrigin = CGPoint(x: frame.origin.x - 2, y: frame.origin.y)
         textLayer.frame = CGRect(origin: textOrigin, size: textSize)
     }

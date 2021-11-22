@@ -78,51 +78,6 @@ extension SCNVector3
     }
 }
 
-/*extension KDTree
-{
-    public func euclideanClustering() -> [[SCNVector3]]
-    {
-        var clusters : [[SCNVector3]] = []
-        //Flag true all points already addded to a cluster
-        var processed : [Bool] = [Bool](repeating: false, count: self.elements.count)
-        var size = self.elements.count
-        print(size)
-        for i in 0..<self.elements.count
-        {
-            if(!processed[i])
-            {
-                var cluster : [SCNVector3] = []
-                let point = self.elements[i] as! SCNVector3
-                findCluster(point: point, processed: &processed, index: i, cluster: &cluster)
-                clusters.append(cluster)
-            }
-        }
-        return clusters
-    }
-    
-    func findCluster(point: SCNVector3, processed: inout [Bool], index: Int, cluster: inout [SCNVector3])
-    {
-        if(!processed[index])
-        {
-            processed[index]=true
-            cluster.append(point)
-            //Get the max number of points withing distanceThreshold
-            let nearbyPoints = self.nearestK(Constants.MAX_NUMBER_POINTS_PER_CLUSTER, to: self.elements[index], where: {p in p.squaredDistance(to: point as! Element )<Double(Constants.PLANE_DISTANCE_THRESHOLD)})
-            for i in 0..<nearbyPoints.count
-            {
-                //The corrisponding index of the nearest point in the
-                //element list
-                let j = self.elements.firstIndex(of: nearbyPoints[i])!
-                if(!processed[j])
-                {
-                    let nearPoint = self.elements[j] as! SCNVector3
-                    findCluster(point: nearPoint, processed: &processed, index: j, cluster: &cluster)
-                }
-            }
-        }
-    }
-}*/
-
 extension ARMeshGeometry {
     func classificationOf(faceWithIndex index: Int) -> ARMeshClassification
     {
