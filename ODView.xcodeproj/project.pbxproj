@@ -10,10 +10,11 @@
 		702CDBB526F7778E0046972D /* ObstacleBoundingBoxView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 702CDBB426F7778E0046972D /* ObstacleBoundingBoxView.swift */; };
 		702EAB8726E8B95900287B1B /* Obstacle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 702EAB8626E8B95900287B1B /* Obstacle.swift */; };
 		709C57DE2722A38600A2BBEB /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 709C57DD2722A38600A2BBEB /* SceneDelegate.swift */; };
+		70AD0E99274D4A8A00580CD1 /* SetupViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70AD0E98274D4A8A00580CD1 /* SetupViewController.swift */; };
 		70C70CB627063E0400ADCCAE /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70C70CB527063E0400ADCCAE /* Extensions.swift */; };
 		70C70CB827063FEC00ADCCAE /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70C70CB727063FEC00ADCCAE /* Constants.swift */; };
 		70ED4C6326CFA083006173D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70ED4C6226CFA083006173D9 /* AppDelegate.swift */; };
-		70ED4C6726CFA083006173D9 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70ED4C6626CFA083006173D9 /* ViewController.swift */; };
+		70ED4C6726CFA083006173D9 /* ObstacleFinderViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70ED4C6626CFA083006173D9 /* ObstacleFinderViewController.swift */; };
 		70ED4C6A26CFA083006173D9 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 70ED4C6826CFA083006173D9 /* Main.storyboard */; };
 		70ED4C6C26CFA085006173D9 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 70ED4C6B26CFA085006173D9 /* Assets.xcassets */; };
 		70ED4C6F26CFA085006173D9 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 70ED4C6D26CFA085006173D9 /* LaunchScreen.storyboard */; };
@@ -42,11 +43,12 @@
 		702CDBB426F7778E0046972D /* ObstacleBoundingBoxView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ObstacleBoundingBoxView.swift; sourceTree = "<group>"; };
 		702EAB8626E8B95900287B1B /* Obstacle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Obstacle.swift; sourceTree = "<group>"; };
 		709C57DD2722A38600A2BBEB /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
+		70AD0E98274D4A8A00580CD1 /* SetupViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupViewController.swift; sourceTree = "<group>"; };
 		70C70CB527063E0400ADCCAE /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
 		70C70CB727063FEC00ADCCAE /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		70ED4C5F26CFA083006173D9 /* ODView.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ODView.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		70ED4C6226CFA083006173D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		70ED4C6626CFA083006173D9 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		70ED4C6626CFA083006173D9 /* ObstacleFinderViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObstacleFinderViewController.swift; sourceTree = "<group>"; };
 		70ED4C6926CFA083006173D9 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		70ED4C6B26CFA085006173D9 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		70ED4C6E26CFA085006173D9 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
@@ -95,9 +97,29 @@
 			path = Utility;
 			sourceTree = "<group>";
 		};
+		70AD0E9A274D4EE700580CD1 /* ViewController */ = {
+			isa = PBXGroup;
+			children = (
+				70AD0E98274D4A8A00580CD1 /* SetupViewController.swift */,
+				70ED4C6626CFA083006173D9 /* ObstacleFinderViewController.swift */,
+			);
+			path = ViewController;
+			sourceTree = "<group>";
+		};
+		70AD0E9B274D4F0400580CD1 /* Storyboard */ = {
+			isa = PBXGroup;
+			children = (
+				70ED4C6D26CFA085006173D9 /* LaunchScreen.storyboard */,
+				70ED4C6826CFA083006173D9 /* Main.storyboard */,
+			);
+			path = Storyboard;
+			sourceTree = "<group>";
+		};
 		70ED4C5626CFA083006173D9 = {
 			isa = PBXGroup;
 			children = (
+				70AD0E9B274D4F0400580CD1 /* Storyboard */,
+				70AD0E9A274D4EE700580CD1 /* ViewController */,
 				70A72EC12726F53400217481 /* Utility */,
 				70ED4C6126CFA083006173D9 /* ODView */,
 				70ED4C7826CFA085006173D9 /* ODViewTests */,
@@ -120,10 +142,7 @@
 			isa = PBXGroup;
 			children = (
 				70ED4C6226CFA083006173D9 /* AppDelegate.swift */,
-				70ED4C6626CFA083006173D9 /* ViewController.swift */,
-				70ED4C6826CFA083006173D9 /* Main.storyboard */,
 				70ED4C6B26CFA085006173D9 /* Assets.xcassets */,
-				70ED4C6D26CFA085006173D9 /* LaunchScreen.storyboard */,
 				70ED4C7026CFA085006173D9 /* Info.plist */,
 				709C57DD2722A38600A2BBEB /* SceneDelegate.swift */,
 			);
@@ -283,9 +302,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				702EAB8726E8B95900287B1B /* Obstacle.swift in Sources */,
-				70ED4C6726CFA083006173D9 /* ViewController.swift in Sources */,
+				70ED4C6726CFA083006173D9 /* ObstacleFinderViewController.swift in Sources */,
 				70ED4C6326CFA083006173D9 /* AppDelegate.swift in Sources */,
 				70C70CB627063E0400ADCCAE /* Extensions.swift in Sources */,
+				70AD0E99274D4A8A00580CD1 /* SetupViewController.swift in Sources */,
 				709C57DE2722A38600A2BBEB /* SceneDelegate.swift in Sources */,
 				702CDBB526F7778E0046972D /* ObstacleBoundingBoxView.swift in Sources */,
 				70C70CB827063FEC00ADCCAE /* Constants.swift in Sources */,

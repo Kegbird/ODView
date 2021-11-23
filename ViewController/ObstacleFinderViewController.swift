@@ -4,7 +4,7 @@ import RealityKit
 import SceneKit
 import Vision
 
-class ViewController: UIViewController, ARSCNViewDelegate, UIGestureRecognizerDelegate
+class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestureRecognizerDelegate
 {
     @IBOutlet weak var arscnView : ARSCNView!
     
@@ -28,6 +28,8 @@ class ViewController: UIViewController, ARSCNViewDelegate, UIGestureRecognizerDe
     
     private var colorPerAnchor : [UUID : UIColor]!
     
+    private var chestHeight : Float!
+    
     private var refNode : SCNNode!
     
     //Facce e performance: Facce totali, Totale tempo
@@ -48,39 +50,6 @@ class ViewController: UIViewController, ARSCNViewDelegate, UIGestureRecognizerDe
         setupARSCNView()
         
         setupBoundingBoxes()
-        
-        createFileName()
-    }
-    
-    public func createFileName()
-    {
-        let date = Date()
-        let calendar = Calendar.current
-        let hour = calendar.component(.hour, from: date)
-        let minutes = calendar.component(.minute, from: date)
-        fileName = String(format: "Data-%d:%d", hour, minutes)
-    }
-    
-    public func saveFile()
-    {
-        let documentDirectoryUrl = try! FileManager.default.url(
-            for: .documentDirectory, in: .allDomainsMask, appropriateFor: nil, create: true)
-        let fileUrl = documentDirectoryUrl.appendingPathComponent(fileName).appendingPathExtension("csv")
-        
-        print(fileUrl.path)
-        var content = ""
-        content="Facce Totali;Facce Filtrate;Tempo filtraggio;Tempo clustering;Tempo MBR;Tempo merge"
-        for record in performances
-        {
-            content=content+"\n"+String(format: "%d;%.2f", record.0, record.1)
-        }
-        do {
-              try content.write(to: fileUrl, atomically: true, encoding: String.Encoding.utf8)
-        }
-        catch let error as NSError
-        {
-            print (error)
-        }
     }
     
     func setupViewVariables()
@@ -95,6 +64,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, UIGestureRecognizerDe
         lockQueue = DispatchQueue(label: "com.odview.lockqueue.serial")
         viewportSize = CGSize(width: 390, height: 763)
         obstaclePerAnchor = [:]
+        if(chestHeight==nil) { chestHeight = 1.5 }
     }
     
     func setupARSCNView()
@@ -103,6 +73,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, UIGestureRecognizerDe
         arscnView.frame=self.view.frame
         arscnView.showsStatistics=true
         arscnView.preferredFramesPerSecond = Constants.PREFERRED_FPS
+        arscnView.debugOptions=[.showWorldOrigin]
         let configuration = ARWorldTrackingConfiguration()
         configuration.worldAlignment = .gravity
         configuration.planeDetection = [.horizontal, .vertical]
@@ -123,8 +94,13 @@ class ViewController: UIViewController, ARSCNViewDelegate, UIGestureRecognizerDe
         }
     }
     
-    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        saveFile()
+    func setChestHeight(height: Decimal)
+    {
+        chestHeight = Float("\(height)")
+    }
+    
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?)
+    {
     }
     
     override func viewWillAppear(_ animated: Bool)
@@ -191,34 +167,38 @@ class ViewController: UIViewController, ARSCNViewDelegate, UIGestureRecognizerDe
         if(vertices.count<2) { return SCNVector3Zero }
         let firstVector = vertices[1].getSimd()-vertices[0].getSimd()
         let secondVector = vertices[2].getSimd()-vertices[0].getSimd()
-        let normal = cross(firstVector, secondVector)
-        return SCNVector3(normal)
+        let normal = SCNVector3(cross(secondVector, firstVector)).normalize()
+        return normal
     }
     
     func addFloorWallPlane(planeAnchor : ARPlaneAnchor, node : SCNNode)
     {
         let width = CGFloat(planeAnchor.extent.x)
         let height = CGFloat(planeAnchor.extent.z)
+        
+        //Ignoriamo i piani la cui superficie è piccola
+        if(width*height < Constants.AREA_THRESHOLD)
+        {
+            node.removeFromParentNode()
+            return
+        }
         let plane: SCNPlane = SCNPlane(width: width, height: height)
         let planeNode = SCNNode(geometry: plane)
         planeNode.simdPosition = planeAnchor.center
         planeNode.eulerAngles.x = -.pi / 2
-        
-        if(colorPerAnchor[planeAnchor.identifier]==nil)
-        {
-            let color = CGColor(red: CGFloat.random(in: 0..<255.0)/255.0, green: CGFloat.random(in: 0..<255.0)/255.0, blue: CGFloat.random(in: 0..<255.0)/255.0, alpha: 0.8)
-            colorPerAnchor[planeAnchor.identifier]=UIColor(cgColor: color)
-        }
-        
-        //Understand if its floor or ceiling
+        //Il piano trovato è orizzontale o verticale?
         if(planeAnchor.alignment == .horizontal)
         {
             guard let frame = arscnView.session.currentFrame else { return }
             let cameraWorldPosition = SCNVector3(frame.camera.transform.columns.3.x, frame.camera.transform.columns.3.y, frame.camera.transform.columns.3.z)
+            let floorLevel = cameraWorldPosition.y-chestHeight
             let planeWorldPosition = SCNVector3(node.simdConvertPosition(planeNode.position.getSimd(), to: nil))
-            if(cameraWorldPosition.y<planeWorldPosition.y)
+            /*
+             Se il piano orizzontale che voglia aggiungere è sopra l'ipotetico
+             livello del suolo, allora lo ignoro
+            */
+            if(abs(planeWorldPosition.y-floorLevel)>Constants.PLANE_DISTANCE_THRESHOLD)
             {
-                node.removeFromParentNode()
                 return
             }
             planeNode.geometry?.firstMaterial?.diffuse.contents=UIColor(cgColor: CGColor(red: 0, green: 1, blue: 1, alpha: 0.8))
@@ -234,19 +214,36 @@ class ViewController: UIViewController, ARSCNViewDelegate, UIGestureRecognizerDe
         {
             node.childNodes[i].removeFromParentNode()
         }
-        let normal = planeNode.simdConvertVector(simd_float3(0, 0, 1), to: nil)
-        let planeWorldPosition = planeNode.worldPosition
-        let endPoint = SCNVector3(x: planeWorldPosition.x+normal.x, y: planeWorldPosition.y+normal.y, z: planeWorldPosition.z+normal.z)
-        let line = createLine(vertices: [planeWorldPosition, SCNVector3(x: endPoint.x, y: endPoint.y, z: endPoint.z), endPoint], indices: [0,1], node: node)
         node.addChildNode(planeNode)
     }
-    
+
     func findObstacles(node: SCNNode, anchor: ARAnchor, renderer: SCNSceneRenderer)
     {
+        guard let frame = arscnView.session.currentFrame else
+        {
+            return
+        }
+        
         let meshAnchor = anchor as! ARMeshAnchor
+        
+        let cameraWorldPosition = SCNVector3(
+            x: frame.camera.transform.columns.3.x,
+            y: frame.camera.transform.columns.3.y,
+            z: frame.camera.transform.columns.3.z)
+        
+        let currentAnchorWorldPosition = SCNVector3(meshAnchor.transform.position)
+        
+        //L'ancora che voglio aggiungere è troppo distante
+        if(SCNVector3.distanceBetween(cameraWorldPosition, currentAnchorWorldPosition)>=Constants.MAX_ANCHOR_DISTANCE)
+        {
+            return
+        }
+        
         var walls : [(SCNVector3, SCNVector3)] = []
         var floors : [(SCNVector3, SCNVector3)] = []
+        
         guard let pointOfView = renderer.pointOfView else { return }
+        
         //Recupero normale e posizione di tutti i muri e pavimenti
         planeQueue.sync
         { [weak self] in
@@ -287,74 +284,44 @@ class ViewController: UIViewController, ARSCNViewDelegate, UIGestureRecognizerDe
                 }
             }
         }
+        
+        
         //Eseguo l'obstacle detection a livello di ancora
         obstacleQueue.async
         { [weak self] in
-            guard let frame = self!.arscnView.session.currentFrame else
+            //Variabili per la stima del floor level
+            let meshGeometry = meshAnchor.geometry
+            //Se non ho piani che corrispondono al suolo
+            if(floors.count==0)
             {
                 return
             }
             
             var faceIndices : [Int] = []
-            
-            let cameraWorldPosition = SCNVector3(
-                x: frame.camera.transform.columns.3.x,
-                y: frame.camera.transform.columns.3.y,
-                z: frame.camera.transform.columns.3.z)
-            
-            let currentAnchorWorldPosition = SCNVector3(meshAnchor.transform.position)
-            
-            //L'ancora che voglio aggiungere è troppo distante
-            if(SCNVector3.distanceBetween(cameraWorldPosition, currentAnchorWorldPosition)>=Constants.MAX_ANCHOR_DISTANCE)
-            {
-                return
-            }
-            
             var points : [SCNVector3] = []
             var indices : [Int32] = []
-            
-            let color : UIColor!
-            if(self!.colorPerAnchor[anchor.identifier]==nil)
-            {
-                let color = CGColor(red: CGFloat.random(in: 0..<255.0)/255.0, green: CGFloat.random(in: 0..<255.0)/255.0, blue: CGFloat.random(in: 0..<255.0)/255.0, alpha: 1)
-                self!.colorPerAnchor[anchor.identifier] = UIColor(cgColor: color)
-            }
-            color = self!.colorPerAnchor[anchor.identifier]
-            let meshGeometry = meshAnchor.geometry
+            let floorLevel = cameraWorldPosition.y-self!.chestHeight
             
             //MARK: Filtro facce
-            for i in 0..<meshAnchor.geometry.faces.count
+            for i in 0..<meshGeometry.faces.count
             {
                 let triangleLocalPosition = meshAnchor.geometry.centerOf(faceWithIndex: i)
                 let triangleWorldPosition = node.convertPosition(triangleLocalPosition, to: nil)
                 let triangleScreenPoint = frame.camera.projectPoint(triangleWorldPosition.getSimd(), orientation: .portrait, viewportSize: self!.viewportSize)
                 
-                //Rimuovo i triangolo fuori dallo schermo
+                //Rimuovo le facce fuori dallo schermo
                 if(triangleScreenPoint.x<0 || self!.viewportSize.width<triangleScreenPoint.x || triangleScreenPoint.y<0 || triangleScreenPoint.y>self!.viewportSize.height)
                 {
                     continue
                 }
-                //Rimuovo i triangoli la cui classificazione non ci interessa (muri, pavimento)
+                
+                //Rimuovo le facce la cui classificazione non ci interessa (muri, pavimento)
                 let classification=meshAnchor.geometry.classificationOf(faceWithIndex: i)
                 
-                if(!self!.considerTriangle(classification)) { continue }
-                
-                let vertices = meshGeometry.verticesOf(faceWithIndex: i).map
-                {
-                    SCNVector3(x: $0.0, y: $0.1, z: $0.2)
-                }
-                
-                let verticesWorldPosition = vertices.compactMap
-                {
-                    node.convertPosition($0, to: nil)
-                }
-                
-                /*let triangleWorldNormal = self!.calculateTriangleNormal(verticesWorldPosition)
-                
-                if(triangleWorldNormal.dotProduct(otherPoint: SCNVector3(x:0, y: 1, z: 0))>=0.5)
+                if(!self!.considerTriangle(classification))
                 {
                     continue
-                }*/
+                }
                 
                 var shouldContinue = false
                 
@@ -379,7 +346,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, UIGestureRecognizerDe
                     let normal = floor.1.getSimd()
                     let relativePosition = triangleWorldPosition.getSimd()-floor.0.getSimd()
                     let distance = simd_dot(normal, relativePosition)
-                    if(abs(distance)<Constants.PLANE_DISTANCE_THRESHOLD)
+                    if(abs(distance)<Constants.PLANE_DISTANCE_THRESHOLD || distance<0)
                     {
                         shouldContinue=true
                         break
@@ -388,13 +355,21 @@ class ViewController: UIViewController, ARSCNViewDelegate, UIGestureRecognizerDe
                 
                 if(shouldContinue) { continue }
                 
-                faceIndices.append(i)
-               
-                let verticesLocalPosition = vertices.compactMap
+                let verticesLocalPosition = meshGeometry.verticesOf(faceWithIndex: i).map
                 {
-                     node.convertPosition($0, to: node)
+                    SCNVector3(x: $0.0, y: $0.1, z: $0.2)
                 }
-                
+                /*
+                 Rimuovo le facce che sono sotto l'ipotetica Y del suolo
+                 La Y del suolo è calcolata partendo dalla Y del device meno
+                 la distanze del busto al suolo.
+                 */
+                if(abs(triangleWorldPosition.y-floorLevel)<=Constants.PLANE_DISTANCE_THRESHOLD)
+                {
+                    continue
+                }
+    
+                faceIndices.append(i)
                 points.append(verticesLocalPosition[0])
                 indices.append(Int32(points.count-1))
                 points.append(verticesLocalPosition[1])
@@ -403,8 +378,9 @@ class ViewController: UIViewController, ARSCNViewDelegate, UIGestureRecognizerDe
                 indices.append(Int32(points.count-1))
             }
             
+            //Visualizzo le facce degli ostacoli
             node.geometry = self!.createGeometry(vertices: points, indices: indices, primitiveType: .triangles)
-            node.geometry?.firstMaterial?.diffuse.contents=color
+            node.geometry?.firstMaterial?.diffuse.contents=UIColor(cgColor: CGColor(red: 1, green: 0, blue: 0, alpha: 0.8))
             
             var faceClusters : [Set<UInt32>] = []
             var pointClusters : [Set<UInt32>] = []
@@ -573,6 +549,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, UIGestureRecognizerDe
                     !renderer.isNode(obstacleNode!, insideFrustumOf: pointOfView)) || obstacleNode==nil)
                 {
                     self!.obstaclePerAnchor[arMeshAnchor.identifier]=nil
+                    
                 }
                 else
                 {
@@ -600,26 +577,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, UIGestureRecognizerDe
                 allObstacles.remove(at: i)
             }
         }
-        
-        //DEBUG
-        /*for i in stride(from: refNode.childNodes.count-1, through: 0, by: -1)
-        {
-            refNode.childNodes[i].removeFromParentNode()
-        }
-        
-        for obstacle in allObstacles
-        {
-            let min = SCNNode(geometry: SCNSphere(radius: 0.01))
-                        min.geometry?.firstMaterial?.diffuse.contents = UIColor.blue
-            min.worldPosition = obstacle.getMinWorldPosition()
-            refNode.addChildNode(min)
-                        
-            let max = SCNNode(geometry: SCNSphere(radius: 0.01))
-                        max.geometry?.firstMaterial?.diffuse.contents = UIColor.red
-            max.worldPosition = obstacle.getMaxWorldPosition()
-            refNode.addChildNode(max)
-        }*/
-        
+    
         DispatchQueue.main.sync
         { [weak self] in
             clusterLbl.text = String(format:"Clusters: %d", counter)

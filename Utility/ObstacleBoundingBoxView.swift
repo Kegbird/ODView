@@ -4,13 +4,14 @@ import ARKit
 
 class ObstacleBoundingBoxView
 {
-    private let shapeLayer: CAShapeLayer
+    private let shapeLayer: CALayer
     private let textLayer: CATextLayer
     
     init() {
-        shapeLayer = CAShapeLayer()
-        shapeLayer.fillColor = UIColor.clear.cgColor
-        shapeLayer.lineWidth = 2
+        shapeLayer = CALayer()
+        shapeLayer.borderWidth=2.0
+        shapeLayer.borderColor = UIColor.clear.cgColor
+        shapeLayer.cornerRadius=0
         shapeLayer.isHidden = true
         textLayer = CATextLayer()
         textLayer.foregroundColor = UIColor.white.cgColor
@@ -38,9 +39,8 @@ class ObstacleBoundingBoxView
     func show(frame: CGRect, label: String, color: UIColor)
     {
         CATransaction.setDisableActions(true)
-        let path = UIBezierPath(rect: frame)
-        shapeLayer.path = path.cgPath
-        shapeLayer.strokeColor = color.cgColor
+        shapeLayer.frame = frame
+        shapeLayer.borderColor = color.cgColor
         shapeLayer.isHidden = false
         
         textLayer.string = label

@@ -63,9 +63,9 @@ extension SCNVector3
         return Double(sqrt(pow(self.x-otherPoint.x,2)+pow(self.y-otherPoint.y,2)+pow(self.z-otherPoint.z,2)))
     }
     
-    public func dotProduct(otherPoint: SCNVector3) -> Double
+    public func dotProduct(_ otherVector: SCNVector3) -> Double
     {
-        return Double(abs(self.x*otherPoint.x+self.y*otherPoint.y+self.z*otherPoint.z))
+        return Double(abs(self.x*otherVector.x+self.y*otherVector.y+self.z*otherVector.z))
     }
     
     public func normalize() -> SCNVector3
@@ -210,5 +210,22 @@ extension ARMeshClassification {
             case .floor: return .blue
             default: return .red
         }
+    }
+}
+
+extension ARFrame
+{
+    func cropFrame(rect : CGRect) -> CVPixelBuffer?
+    {
+        var frameImage = CIImage(cvPixelBuffer: self.capturedImage)
+        frameImage = frameImage.cropped(to: rect)
+        let attrs = [kCVPixelBufferCGImageCompatibilityKey: kCFBooleanTrue,
+                     kCVPixelBufferCGBitmapContextCompatibilityKey: kCFBooleanTrue] as CFDictionary
+        var frameBuffer : CVPixelBuffer?
+        CVPixelBufferCreate(kCFAllocatorDefault, Int(rect.width), Int(rect.height), kCVPixelFormatType_32BGRA, attrs, &frameBuffer)
+        let context = CIContext()
+        context.render(frameImage, to: frameBuffer!)
+        context.clearCaches()
+        return frameBuffer
     }
 }
