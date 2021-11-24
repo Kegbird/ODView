@@ -215,7 +215,24 @@ extension ARMeshClassification {
 
 extension ARFrame
 {
-    func cropFrame(rect : CGRect) -> CVPixelBuffer?
+    func convert() -> CGImage?
+    {
+        let frameImage = CIImage(cvPixelBuffer: self.capturedImage)
+        let attrs = [kCVPixelBufferCGImageCompatibilityKey: kCFBooleanTrue,
+                     kCVPixelBufferCGBitmapContextCompatibilityKey: kCFBooleanTrue] as CFDictionary
+        var frameBuffer : CVPixelBuffer?
+        CVPixelBufferCreate(kCFAllocatorDefault, Int(frameImage.extent.width), Int(frameImage.extent.height), kCVPixelFormatType_32BGRA, attrs, &frameBuffer)
+        
+        let context = CIContext()
+        if let cgImage = context.createCGImage(frameImage, from: frameImage.extent)
+        {
+            return cgImage
+        }
+        
+        return nil
+    }
+    
+    func cropFrame(rect : CGRect) -> CGImage?
     {
         var frameImage = CIImage(cvPixelBuffer: self.capturedImage)
         frameImage = frameImage.cropped(to: rect)
@@ -224,8 +241,18 @@ extension ARFrame
         var frameBuffer : CVPixelBuffer?
         CVPixelBufferCreate(kCFAllocatorDefault, Int(rect.width), Int(rect.height), kCVPixelFormatType_32BGRA, attrs, &frameBuffer)
         let context = CIContext()
+        //Rendering del frame cropped
         context.render(frameImage, to: frameBuffer!)
+        guard frameBuffer != nil else { return nil }
+        //Creazione CIImage usando il frame cropped
+        let croppedFrameImage = CIImage(cvPixelBuffer: frameBuffer!)
+        //Creazione CGImage
+        if let cgCroppedFrameImage = context.createCGImage(croppedFrameImage, from: croppedFrameImage.extent)
+        {
+            context.clearCaches()
+            return cgCroppedFrameImage
+        }
         context.clearCaches()
-        return frameBuffer
+        return nil
     }
 }

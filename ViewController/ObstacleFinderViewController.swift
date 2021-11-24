@@ -32,14 +32,13 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
     
     private var refNode : SCNNode!
     
-    //Facce e performance: Facce totali, Totale tempo
-    private var performances : [(Int, Float)]!
-    
     @IBOutlet private var clusterLbl : UILabel!
     
     @IBOutlet private var anchorLbl : UILabel!
     
-    @IBOutlet private var wallLbl : UILabel!
+    @IBOutlet private var predictionLabel : UILabel!
+    
+    private var imagePredictor : ImagePredictor!
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -55,7 +54,6 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
     func setupViewVariables()
     {
         UIApplication.shared.isIdleTimerDisabled = true
-        performances=[]
         colorPerAnchor=[:]
         floors=[:]
         walls=[:]
@@ -69,6 +67,7 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
     
     func setupARSCNView()
     {
+        imagePredictor = ImagePredictor()
         arscnView.delegate=self
         arscnView.frame=self.view.frame
         arscnView.showsStatistics=true
@@ -101,6 +100,46 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?)
     {
+        guard let frame = arscnView.session.currentFrame else { return }
+        let frameImage = frame.cropFrame(rect: CGRect(x: 200, y: 200, width: 100, height: 100))
+                                         
+        DispatchQueue.global(qos: .userInitiated).async
+        { [weak self] in
+            do
+            {
+                try self!.imagePredictor.makePredictions(for: frameImage,
+                                                        completionHandler: self!.imagePredictionHandler)
+            }
+            catch
+            {
+                print("Vision was unable to make a prediction...\n\n\(error.localizedDescription)")
+            }
+        }
+    }
+    
+    private func imagePredictionHandler(_ predictions: [ImagePredictor.Prediction]?)
+    {
+        guard var predictions = predictions else
+        {
+            updatePredictionLabel(text: "Unclassified")
+            return
+        }
+        //images.sorted(by: { $0.fileID > $1.fileID })
+        predictions = predictions.sorted
+        {
+            $0.confidencePercentage > $1.confidencePercentage
+        }
+
+        let text = predictions[0].classification
+        updatePredictionLabel(text: text)
+    }
+    
+    private func updatePredictionLabel(text : String)
+    {
+        DispatchQueue.main.async
+        { [weak self] in
+            self!.predictionLabel.text=text
+        }
     }
     
     override func viewWillAppear(_ animated: Bool)
@@ -175,13 +214,6 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
     {
         let width = CGFloat(planeAnchor.extent.x)
         let height = CGFloat(planeAnchor.extent.z)
-        
-        //Ignoriamo i piani la cui superficie è piccola
-        if(width*height < Constants.AREA_THRESHOLD)
-        {
-            node.removeFromParentNode()
-            return
-        }
         let plane: SCNPlane = SCNPlane(width: width, height: height)
         let planeNode = SCNNode(geometry: plane)
         planeNode.simdPosition = planeAnchor.center
