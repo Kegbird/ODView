@@ -232,6 +232,21 @@ extension ARFrame
         return nil
     }
     
+    func renderCgImage() -> CGImage?
+    {
+        let frameImage = CIImage(cvPixelBuffer: self.capturedImage)
+        let frameRect = CGRect(x: 0, y: 0, width: frameImage.extent.width, height: frameImage.extent.height)
+        let attrs = [kCVPixelBufferCGImageCompatibilityKey: kCFBooleanTrue,
+                     kCVPixelBufferCGBitmapContextCompatibilityKey: kCFBooleanTrue] as CFDictionary
+        var frameBuffer : CVPixelBuffer?
+        CVPixelBufferCreate(kCFAllocatorDefault, Int(frameRect.width), Int(frameRect.height), kCVPixelFormatType_32BGRA, attrs, &frameBuffer)
+        let context = CIContext()
+        context.render(frameImage, to: frameBuffer!)
+        guard frameBuffer != nil else { return nil }
+        let frameCgImage = context.createCGImage(frameImage, from: frameRect)
+        return frameCgImage
+    }
+    
     func cropFrame(rect : CGRect) -> CGImage?
     {
         var frameImage = CIImage(cvPixelBuffer: self.capturedImage)
@@ -254,5 +269,43 @@ extension ARFrame
         }
         context.clearCaches()
         return nil
+    }
+}
+
+extension CGRect
+{
+    func unScaleRect() -> CGRect
+    {
+        let minX = self.minX/UIScreen.main.scale
+        let minY = self.minX/UIScreen.main.scale
+            
+        let width = self.width/UIScreen.main.scale
+        let height = self.height/UIScreen.main.scale
+            
+        return CGRect(x: minX, y: minY, width: width, height: height)
+    }
+    
+    func clampRect(screenWidth : CGFloat, screenHeight : CGFloat) -> CGRect
+    {
+        let minX = self.minX>=0 ? self.minX : 0
+        let maxX = self.maxX<=screenWidth ? self.maxX : screenWidth
+        let minY = self.minY>=0 ? self.minY : 0
+        let maxY = self.maxY<=screenHeight ? self.maxY : screenHeight
+        let width = maxX-minX
+        let height = maxY-minY
+        let clampedRect = CGRect(x: minX, y: minY, width: width, height: height)
+        return clampedRect
+    }
+    
+    func clampNormalizedRect() -> CGRect
+    {
+        let minX = self.minX>=0 ? self.minX : 0
+        let maxX = self.maxX<=1 ? self.maxX : 1
+        let minY = self.minY>=0 ? self.minY : 0
+        let maxY = self.maxY<=1 ? self.maxY : 1
+        let width = maxX-minX
+        let height = maxY-minY
+        let clampedRect = CGRect(x: minX, y: minY, width: width, height: height)
+        return clampedRect
     }
 }

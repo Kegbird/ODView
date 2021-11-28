@@ -47,9 +47,33 @@ class Obstacle
         return maxWorldPosition
     }
     
+    private func clampScreenPoint(screenPoint : CGPoint, viewportSize : CGSize) -> CGPoint
+    {
+        var clampedScreenPoint = screenPoint
+        if(screenPoint.x<0)
+        {
+            clampedScreenPoint.x=0
+        }
+        else if(screenPoint.x>viewportSize.width)
+        {
+            clampedScreenPoint.x=viewportSize.width
+        }
+        
+        if(screenPoint.y<0)
+        {
+            clampedScreenPoint.y=0
+        }
+        else if(screenPoint.y>viewportSize.height)
+        {
+            clampedScreenPoint.y=viewportSize.height
+        }
+        return clampedScreenPoint
+    }
+    
     public func updateBoundaries(frame: ARFrame, viewportSize: CGSize, worldPoint: SCNVector3)
     {
-        let screenPoint = frame.camera.projectPoint(worldPoint.getSimd(), orientation: .portrait, viewportSize: viewportSize)
+        var screenPoint = frame.camera.projectPoint(worldPoint.getSimd(), orientation: .portrait, viewportSize: viewportSize)
+        screenPoint = clampScreenPoint(screenPoint: screenPoint, viewportSize: viewportSize)
         
         if(minPointBoundingBox==nil || minWorldPosition==nil
            || maxPointBoundingBox==nil || maxWorldPosition==nil)
@@ -74,7 +98,7 @@ class Obstacle
         if(screenPoint.y>maxPointBoundingBox.y) { maxPointBoundingBox.y = screenPoint.y }
     }
     
-    public func getFrame() -> CGRect
+    public func getObstaclePixelRect() -> CGRect
     {
         if(minPointBoundingBox==nil || minWorldPosition==nil
            || maxPointBoundingBox==nil || maxWorldPosition==nil)
@@ -82,18 +106,26 @@ class Obstacle
             return CGRect.zero
         }
         
-        /*let min = view.projectPoint(minWorldPosition)
-        let max = view.projectPoint(maxWorldPosition)
-        let width = max.x - min.x
-        let height = max.y - min.y
-        let frame = CGRect(x: CGFloat(min.x), y: CGFloat(min.y), width: CGFloat(width), height: CGFloat(height))
-        return frame*/
-        
-        
         let width = maxPointBoundingBox.x - minPointBoundingBox.x
         let height = maxPointBoundingBox.y - minPointBoundingBox.y
-        let frame = CGRect(x: minPointBoundingBox.x, y: minPointBoundingBox.y, width: width, height: height)
-        return frame
+        let rect = CGRect(x: minPointBoundingBox.x, y: minPointBoundingBox.y, width: width, height: height)
+        return rect
+    }
+    
+    public func getObstaclePointRect() -> CGRect
+    {
+        if(minPointBoundingBox==nil || minWorldPosition==nil
+           || maxPointBoundingBox==nil || maxWorldPosition==nil)
+        {
+            return CGRect.zero
+        }
+        
+        let pixelRect = getObstaclePixelRect()
+        let minX = pixelRect.minX*UIScreen.main.scale
+        let minY = pixelRect.minX*UIScreen.main.scale
+        let width = pixelRect.width*UIScreen.main.scale
+        let height = pixelRect.height*UIScreen.main.scale
+        return CGRect(x: minX, y: minY, width: width, height: height)
     }
     
     public func getWorldCornerPositions() -> [SCNVector3]

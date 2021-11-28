@@ -22,6 +22,8 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
     
     private var fileName : String!
     
+    private var viewSize : CGSize!
+    
     private var viewportSize : CGSize!
     
     private var obstaclePerAnchor : [UUID: [Obstacle]]!
@@ -32,6 +34,8 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
     
     private var refNode : SCNNode!
     
+    private var classification : Bool!
+    
     @IBOutlet private var clusterLbl : UILabel!
     
     @IBOutlet private var anchorLbl : UILabel!
@@ -39,6 +43,8 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
     @IBOutlet private var predictionLabel : UILabel!
     
     private var imagePredictor : ImagePredictor!
+    
+    @IBOutlet private var previewView : UIImageView!
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -57,11 +63,13 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
         colorPerAnchor=[:]
         floors=[:]
         walls=[:]
+        classification = false
         planeQueue = DispatchQueue(label: "com.odview.planequeue.serial", qos: .userInteractive)
         obstacleQueue = DispatchQueue(label: "com.odview.obstaclequeue.serial", qos: .userInteractive)
         lockQueue = DispatchQueue(label: "com.odview.lockqueue.serial")
-        viewportSize = CGSize(width: 390, height: 763)
         obstaclePerAnchor = [:]
+        viewSize = CGSize(width: 390, height: 763)
+        viewportSize = CGSize(width: 1170, height: 2259)
         if(chestHeight==nil) { chestHeight = 1.5 }
     }
     
@@ -69,6 +77,7 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
     {
         imagePredictor = ImagePredictor()
         arscnView.delegate=self
+        arscnView.isOpaque=true
         arscnView.frame=self.view.frame
         arscnView.showsStatistics=true
         arscnView.preferredFramesPerSecond = Constants.PREFERRED_FPS
@@ -100,38 +109,6 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?)
     {
-        guard let frame = arscnView.session.currentFrame else { return }
-        let frameImage = frame.cropFrame(rect: CGRect(x: 200, y: 200, width: 100, height: 100))
-                                         
-        DispatchQueue.global(qos: .userInitiated).async
-        { [weak self] in
-            do
-            {
-                try self!.imagePredictor.makePredictions(for: frameImage,
-                                                        completionHandler: self!.imagePredictionHandler)
-            }
-            catch
-            {
-                print("Vision was unable to make a prediction...\n\n\(error.localizedDescription)")
-            }
-        }
-    }
-    
-    private func imagePredictionHandler(_ predictions: [ImagePredictor.Prediction]?)
-    {
-        guard var predictions = predictions else
-        {
-            updatePredictionLabel(text: "Unclassified")
-            return
-        }
-        //images.sorted(by: { $0.fileID > $1.fileID })
-        predictions = predictions.sorted
-        {
-            $0.confidencePercentage > $1.confidencePercentage
-        }
-
-        let text = predictions[0].classification
-        updatePredictionLabel(text: text)
     }
     
     private func updatePredictionLabel(text : String)
@@ -214,6 +191,9 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
     {
         let width = CGFloat(planeAnchor.extent.x)
         let height = CGFloat(planeAnchor.extent.z)
+        //Se l'area trovata è minore di 1mq, allora ignoro il piano
+        if(width*height<Constants.AREA_THRESHOLD) { return }
+        
         let plane: SCNPlane = SCNPlane(width: width, height: height)
         let planeNode = SCNNode(geometry: plane)
         planeNode.simdPosition = planeAnchor.center
@@ -233,12 +213,12 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
             {
                 return
             }
-            planeNode.geometry?.firstMaterial?.diffuse.contents=UIColor(cgColor: CGColor(red: 0, green: 1, blue: 1, alpha: 0.8))
+            planeNode.geometry?.firstMaterial?.diffuse.contents=UIColor(cgColor: CGColor(red: 0, green: 1, blue: 1, alpha: 0))
             floors[planeAnchor.identifier]=planeNode
         }
         else
         {
-            planeNode.geometry?.firstMaterial?.diffuse.contents=UIColor(cgColor: CGColor(red: 0, green: 1, blue: 0, alpha: 0.8))
+            planeNode.geometry?.firstMaterial?.diffuse.contents=UIColor(cgColor: CGColor(red: 0, green: 1, blue: 0, alpha: 0))
             walls[planeAnchor.identifier]=planeNode
         }
         
@@ -247,6 +227,28 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
             node.childNodes[i].removeFromParentNode()
         }
         node.addChildNode(planeNode)
+    }
+    
+    func cropImage(_ inputImage: UIImage, toRect cropRect: CGRect, viewWidth: CGFloat, viewHeight: CGFloat) -> UIImage?
+    {
+        let imageViewScale = max(inputImage.size.width / viewWidth,
+                                 inputImage.size.height / viewHeight)
+
+        // Scale cropRect to handle images larger than shown-on-screen size
+        let cropZone = CGRect(x:cropRect.origin.x * imageViewScale,
+                              y:cropRect.origin.y * imageViewScale,
+                              width:cropRect.size.width * imageViewScale,
+                              height:cropRect.size.height * imageViewScale)
+
+        // Perform cropping in Core Graphics
+        guard let cutImageRef: CGImage = inputImage.cgImage?.cropping(to:cropZone)
+        else {
+            return nil
+        }
+
+        // Return image to UIImage
+        let croppedImage: UIImage = UIImage(cgImage: cutImageRef)
+        return croppedImage
     }
 
     func findObstacles(node: SCNNode, anchor: ARAnchor, renderer: SCNSceneRenderer)
@@ -317,7 +319,6 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
             }
         }
         
-        
         //Eseguo l'obstacle detection a livello di ancora
         obstacleQueue.async
         { [weak self] in
@@ -339,10 +340,10 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
             {
                 let triangleLocalPosition = meshAnchor.geometry.centerOf(faceWithIndex: i)
                 let triangleWorldPosition = node.convertPosition(triangleLocalPosition, to: nil)
-                let triangleScreenPoint = frame.camera.projectPoint(triangleWorldPosition.getSimd(), orientation: .portrait, viewportSize: self!.viewportSize)
+                let triangleScreenPoint = frame.camera.projectPoint(triangleWorldPosition.getSimd(), orientation: .portrait, viewportSize: self!.viewSize)
                 
                 //Rimuovo le facce fuori dallo schermo
-                if(triangleScreenPoint.x<0 || self!.viewportSize.width<triangleScreenPoint.x || triangleScreenPoint.y<0 || triangleScreenPoint.y>self!.viewportSize.height)
+                if(triangleScreenPoint.x<0 || self!.viewSize.width<triangleScreenPoint.x || triangleScreenPoint.y<0 || triangleScreenPoint.y>self!.viewSize.height)
                 {
                     continue
                 }
@@ -412,7 +413,7 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
             
             //Visualizzo le facce degli ostacoli
             node.geometry = self!.createGeometry(vertices: points, indices: indices, primitiveType: .triangles)
-            node.geometry?.firstMaterial?.diffuse.contents=UIColor(cgColor: CGColor(red: 1, green: 0, blue: 0, alpha: 0.8))
+            node.geometry?.firstMaterial?.diffuse.contents=UIColor(cgColor: CGColor(red: 1, green: 1, blue: 1, alpha: 0.8))
             
             var faceClusters : [Set<UInt32>] = []
             var pointClusters : [Set<UInt32>] = []
@@ -485,7 +486,7 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
                     
                     for j in 0..<3
                     {
-                        obstacle.updateBoundaries(frame: frame, viewportSize: self!.viewportSize, worldPoint: worldVertices[j])
+                        obstacle.updateBoundaries(frame: frame, viewportSize: self!.viewSize, worldPoint: worldVertices[j])
                     }
                 }
                 obstacles.append(obstacle)
@@ -561,7 +562,11 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
     
     func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval)
     {
+        //Se non ci sono classificazioni in corso, allora procedo
+        //Con la classificazione delle mbr
+        guard !classification else { return }
         guard let frame = arscnView.session.currentFrame else { return }
+        classification = true
         var counter = 0
         var anchorCounter = 0
         var allObstacles : [Obstacle] = []
@@ -581,7 +586,6 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
                     !renderer.isNode(obstacleNode!, insideFrustumOf: pointOfView)) || obstacleNode==nil)
                 {
                     self!.obstaclePerAnchor[arMeshAnchor.identifier]=nil
-                    
                 }
                 else
                 {
@@ -599,9 +603,16 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
             anchorCounter=self!.obstaclePerAnchor.keys.count
         }
         
+        if(allObstacles.count==0)
+        {
+            classification=false
+            return
+        }
+        
         //MARK: Merge close obstacle
         merge(obstacles: &allObstacles)
         
+        //MARK: Disattivo le bounding box che non servono
         if(allObstacles.count>=Constants.MAX_OBSTACLE_NUMBER)
         {
             for i in stride(from: allObstacles.count-1, to: Constants.MAX_OBSTACLE_NUMBER-1, by: -1)
@@ -609,21 +620,48 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
                 allObstacles.remove(at: i)
             }
         }
-    
-        DispatchQueue.main.sync
+        
+        //MARK: Classificazione degli ostacoli
+        var labels : [String] = []
+        DispatchQueue.global(qos: .userInteractive).async
         { [weak self] in
-            clusterLbl.text = String(format:"Clusters: %d", counter)
-            anchorLbl.text = String(format:"Anchors: %d", anchorCounter)
-            var i = 0
-            for obstacle in allObstacles
+            
+            guard let frameCgImage = self!.arscnView.snapshot().cgImage
+            else
             {
-                let frame = obstacle.getFrame()
-                self!.boundingBoxes[i].show(frame: frame, label: "Obstacle", color: UIColor.blue)
-                i+=1
+                self!.classification=false
+                return
             }
-            for i in stride(from: allObstacles.count, to: boundingBoxes.count, by: 1)
+            
+            //Passo al classificatore il frame con le bounding box
+            labels = self!.imagePredictor.getPredictedLabels(cgImage: frameCgImage, for: allObstacles)
+            
+            /*var bb = allObstacles[0].getObstacleRect().scaleRect()
+            bb = VNNormalizedRectForImageRect(bb, frameCgImage.width, frameCgImage.height)
+            bb = VNImageRectForNormalizedRect(bb, frameCgImage.width, frameCgImage.height)
+            
+            DispatchQueue.main.async
             {
-                self!.boundingBoxes[i].hide()
+                self?.previewView.image = UIImage(cgImage: frameCgImage.cropping(to: bb)!)
+            }*/
+            
+            self!.classification=false
+            
+            DispatchQueue.main.sync
+            { [weak self] in
+                self!.clusterLbl.text = String(format:"Clusters: %d", counter)
+                self!.anchorLbl.text = String(format:"Anchors: %d", anchorCounter)
+                var i = 0
+                for obstacle in allObstacles
+                {
+                    let obstacleRect = obstacle.getObstaclePixelRect()
+                    self!.boundingBoxes[i].show(rect: obstacleRect, label: labels[i], color: UIColor.blue)
+                    i+=1
+                }
+                for i in stride(from: allObstacles.count, to: self!.boundingBoxes.count, by: 1)
+                {
+                    self!.boundingBoxes[i].hide()
+                }
             }
         }
     }

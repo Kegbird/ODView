@@ -36,10 +36,10 @@ class ObstacleBoundingBoxView
         textLayer.removeFromSuperlayer()
     }
     
-    func show(frame: CGRect, label: String, color: UIColor)
+    func show(rect: CGRect, label: String, color: UIColor)
     {
         CATransaction.setDisableActions(true)
-        shapeLayer.frame = frame
+        shapeLayer.frame = rect
         shapeLayer.borderColor = color.cgColor
         shapeLayer.isHidden = false
         
@@ -53,7 +53,7 @@ class ObstacleBoundingBoxView
                                           options: .usesFontLeading,
                                           attributes: attributes, context: nil)
         let textSize = CGSize(width: textRect.width, height: textRect.height)
-        let textOrigin = CGPoint(x: frame.origin.x - 2, y: frame.origin.y)
+        let textOrigin = CGPoint(x: rect.origin.x - 2, y: rect.origin.y)
         textLayer.frame = CGRect(origin: textOrigin, size: textSize)
     }
     
