@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		7004230B275612EC0040A0E1 /* BikeCarClassifier.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 7004230A275612EC0040A0E1 /* BikeCarClassifier.mlmodel */; };
 		7024C8FB274EA90000C010F9 /* ImagePredictor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7024C8FA274EA90000C010F9 /* ImagePredictor.swift */; };
 		7024C8FE274EACB500C010F9 /* SqueezeNet.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 7024C8FD274EACB500C010F9 /* SqueezeNet.mlmodel */; };
 		702CDBB526F7778E0046972D /* ObstacleBoundingBoxView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 702CDBB426F7778E0046972D /* ObstacleBoundingBoxView.swift */; };
@@ -42,6 +43,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		7004230A275612EC0040A0E1 /* BikeCarClassifier.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = BikeCarClassifier.mlmodel; sourceTree = "<group>"; };
 		7024C8FA274EA90000C010F9 /* ImagePredictor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ImagePredictor.swift; path = ../../../../ImagePredictor.swift; sourceTree = "<group>"; };
 		7024C8FD274EACB500C010F9 /* SqueezeNet.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = SqueezeNet.mlmodel; sourceTree = "<group>"; };
 		702CDBB426F7778E0046972D /* ObstacleBoundingBoxView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ObstacleBoundingBoxView.swift; sourceTree = "<group>"; };
@@ -93,6 +95,7 @@
 		7024C8FC274EAB8500C010F9 /* Model */ = {
 			isa = PBXGroup;
 			children = (
+				7004230A275612EC0040A0E1 /* BikeCarClassifier.mlmodel */,
 				7024C8FD274EACB500C010F9 /* SqueezeNet.mlmodel */,
 			);
 			path = Model;
@@ -315,6 +318,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7004230B275612EC0040A0E1 /* BikeCarClassifier.mlmodel in Sources */,
 				702EAB8726E8B95900287B1B /* Obstacle.swift in Sources */,
 				70ED4C6726CFA083006173D9 /* ObstacleFinderViewController.swift in Sources */,
 				70ED4C6326CFA083006173D9 /* AppDelegate.swift in Sources */,

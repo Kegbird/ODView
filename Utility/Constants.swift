@@ -17,7 +17,7 @@ class Constants
     public static let MAX_OBSTACLE_NUMBER : Int = 50
     public static let MERGE_DISTANCE : Float = 0.5
     public static let AREA_THRESHOLD : CGFloat = 1.0
-    public static let MIN_PREDICTION_CONFIDENCE : Float = 0.8
+    public static let MIN_PREDICTION_CONFIDENCE : Float = 0.80
     public static let MIN_POINTS_NUMBER : Int = 100
     public static let MIN_NUMBER_TRIANGLES_FOR_CLUSTER : Int = 10
     public static let FRAME_PER_SECOND : Float = 30.0

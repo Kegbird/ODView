@@ -2,6 +2,7 @@ import UIKit
 import ARKit
 import RealityKit
 import SceneKit
+import VideoToolbox
 import Vision
 
 class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestureRecognizerDelegate
@@ -213,12 +214,12 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
             {
                 return
             }
-            planeNode.geometry?.firstMaterial?.diffuse.contents=UIColor(cgColor: CGColor(red: 0, green: 1, blue: 1, alpha: 0))
+            planeNode.geometry?.firstMaterial?.diffuse.contents=UIColor(cgColor: CGColor(red: 0, green: 1, blue: 1, alpha: 0.8))
             floors[planeAnchor.identifier]=planeNode
         }
         else
         {
-            planeNode.geometry?.firstMaterial?.diffuse.contents=UIColor(cgColor: CGColor(red: 0, green: 1, blue: 0, alpha: 0))
+            planeNode.geometry?.firstMaterial?.diffuse.contents=UIColor(cgColor: CGColor(red: 0, green: 1, blue: 0, alpha: 0.8))
             walls[planeAnchor.identifier]=planeNode
         }
         
@@ -603,12 +604,6 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
             anchorCounter=self!.obstaclePerAnchor.keys.count
         }
         
-        if(allObstacles.count==0)
-        {
-            classification=false
-            return
-        }
-        
         //MARK: Merge close obstacle
         merge(obstacles: &allObstacles)
         
@@ -625,13 +620,8 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
         var labels : [String] = []
         DispatchQueue.global(qos: .userInteractive).async
         { [weak self] in
-            
-            guard let frameCgImage = self!.arscnView.snapshot().cgImage
-            else
-            {
-                self!.classification=false
-                return
-            }
+            var frameCgImage: CGImage?
+            VTCreateCGImageFromCVPixelBuffer(frame.capturedImage, options: nil, imageOut: &frameCgImage)
             
             //Passo al classificatore il frame con le bounding box
             labels = self!.imagePredictor.getPredictedLabels(cgImage: frameCgImage, for: allObstacles)
@@ -642,13 +632,20 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
             
             DispatchQueue.main.async
             {
-                self?.previewView.image = UIImage(cgImage: frameCgImage.cropping(to: bb)!)
+                let pixelBuffer = frame.capturedImage
+                var cgImage: CGImage?
+                VTCreateCGImageFromCVPixelBuffer(pixelBuffer, options: nil, imageOut: &cgImage)
+                
+                if(cgImage != nil)
+                {
+                    let image = UIImage(cgImage: cgImage!)
+                    self?.previewView.image = image
+                }
             }*/
             
-            self!.classification=false
-            
-            DispatchQueue.main.sync
+            DispatchQueue.main.async
             { [weak self] in
+                
                 self!.clusterLbl.text = String(format:"Clusters: %d", counter)
                 self!.anchorLbl.text = String(format:"Anchors: %d", anchorCounter)
                 var i = 0
@@ -663,6 +660,7 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
                     self!.boundingBoxes[i].hide()
                 }
             }
+            self!.classification=false
         }
     }
 }

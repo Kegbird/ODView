@@ -17,7 +17,7 @@ class ObstacleBoundingBoxView
         textLayer.foregroundColor = UIColor.white.cgColor
         textLayer.isHidden = true
         textLayer.contentsScale = UIScreen.main.scale
-        textLayer.fontSize = 8
+        textLayer.fontSize = 16
         textLayer.font = UIFont(name: "Avenir", size: textLayer.fontSize)
         textLayer.alignmentMode = CATextLayerAlignmentMode.left
     }
