@@ -21,6 +21,8 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
     
     private var lockQueue : DispatchQueue!
     
+    private var classificationQueue : DispatchQueue!
+    
     private var fileName : String!
     
     private var viewportSize : CGSize!
@@ -70,7 +72,8 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
         classification = false
         planeQueue = DispatchQueue(label: "com.odview.planequeue.serial", qos: .userInteractive)
         obstacleQueue = DispatchQueue(label: "com.odview.obstaclequeue.serial", qos: .userInteractive)
-        lockQueue = DispatchQueue(label: "com.odview.lockqueue.serial")
+        lockQueue = DispatchQueue(label: "com.odview.lockqueue.serial", qos: .userInteractive)
+        classificationQueue = DispatchQueue(label: "com.odview.classification.serial", qos: .userInteractive)
         obstaclePerAnchor = [:]
         knownObstacles = []
         viewportSize = CGSize(width: 1170, height: 2259)
@@ -554,8 +557,12 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
         //Se non ci sono classificazioni in corso, allora procedo
         //Con la classificazione delle mbr
         guard !classification else { return }
-        guard let frame = arscnView.session.currentFrame else { return }
         classification = true
+        guard let frame = arscnView.session.currentFrame else
+        {
+            classification = false
+            return
+        }
         var counter = 0
         var anchorCounter = 0
         var newObstacles : [Obstacle] = []
@@ -595,106 +602,117 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
             anchorCounter=self!.obstaclePerAnchor.keys.count
         }
         
-        //MARK: Unione dei cluster
-        merge(obstacles: &newObstacles)
-        
-        //MARK: Classificazione degli ostacoli
-        DispatchQueue.global(qos: .userInteractive).async
+        classificationQueue.async
         { [weak self] in
-            var frameCgImage: CGImage?
-            VTCreateCGImageFromCVPixelBuffer(frame.capturedImage, options: nil, imageOut: &frameCgImage)
-            var frameImage = UIImage(cgImage: frameCgImage!)
-            frameImage=frameImage.rotate(radians: .pi/2)!
+            let start = DispatchTime.now()
             
-            //Passo al classificatore il frame con le bounding box
-            self!.imagePredictor.classifyNewObstacles(cgImage: frameImage.cgImage!, for: &newObstacles)
+            //MARK: Unione dei cluster
+            self!.merge(obstacles: &newObstacles)
             
-            if(self!.knownObstacles.count>0)
-            {
-                var marked : [Bool] = Array(repeating: false, count: self!.knownObstacles.count)
+            //MARK: Classificazione degli ostacoli
+            DispatchQueue.global(qos: .userInteractive).async
+            { [weak self] in
+                var frameCgImage: CGImage?
+                VTCreateCGImageFromCVPixelBuffer(frame.capturedImage, options: nil, imageOut: &frameCgImage)
+                var frameImage = UIImage(cgImage: frameCgImage!)
+                frameImage=frameImage.rotate(radians: .pi/2)!
                 
-                for i in stride(from: 0, through: self!.knownObstacles.count-1, by: 1)
+                //Passo al classificatore il frame con le bounding box
+                self!.imagePredictor.classifyNewObstacles(cgImage: frameImage.cgImage!, for: &newObstacles)
+                
+                if(self!.knownObstacles.count>0)
                 {
-                    for j in stride(from: newObstacles.count-1, through: 0, by: -1)
+                    var marked : [Bool] = Array(repeating: false, count: self!.knownObstacles.count)
+                    
+                    for i in stride(from: 0, through: self!.knownObstacles.count-1, by: 1)
                     {
-                        let newObstacle = newObstacles[j]
-                        
-                        if(self!.knownObstacles[i].areIntersected(other: newObstacle))
+                        for j in stride(from: newObstacles.count-1, through: 0, by: -1)
                         {
-                            if(!marked[i])
+                            let newObstacle = newObstacles[j]
+                            
+                            if(self!.knownObstacles[i].areIntersected(other: newObstacle))
                             {
-                                self!.knownObstacles[i].resetBoundingBox()
-                                marked[i]=true
+                                if(!marked[i])
+                                {
+                                    self!.knownObstacles[i].resetBoundingBox()
+                                    marked[i]=true
+                                }
+                                let newPrediction = newObstacle.getMostProbablePrediction()
+                                self!.knownObstacles[i].mergeWithOther(other: newObstacle)
+                                self!.knownObstacles[i].addNewPrediction(newPrediction: newPrediction)
+                                newObstacles.remove(at: j)
                             }
-                            let newPrediction = newObstacle.getMostProbablePrediction()
-                            self!.knownObstacles[i].mergeWithOther(other: newObstacle)
-                            self!.knownObstacles[i].addNewPrediction(newPrediction: newPrediction)
-                            newObstacles.remove(at: j)
+                        }
+                    }
+                    
+                    //Se un ostacolo tra quelli conosciuti, non viene riconfermato
+                    //allora lo si elimina.
+                    for i in stride(from: marked.count-1, through: 0, by: -1)
+                    {
+                        if(!marked[i])
+                        {
+                            self!.knownObstacles.remove(at: i)
                         }
                     }
                 }
                 
-                //Se un ostacolo tra quelli conosciuti, non viene riconfermato
-                //allora lo si elimina.
-                for i in stride(from: marked.count-1, through: 0, by: -1)
+                //Se un nuovo ostacolo non viene fuso con quelli già conosciuti
+                //allora è un nuovo ostacolo e va aggiunto.
+                for newObstacle in newObstacles
                 {
-                    if(!marked[i])
+                    self!.knownObstacles.append(newObstacle)
+                }
+                
+                DispatchQueue.main.async
+                { [weak self] in
+                    self!.clusterLbl.text = String(format:"Clusters: %d", counter)
+                    self!.anchorLbl.text = String(format:"Anchors: %d", anchorCounter)
+                    self!.obstacleLbl.text = String(format: "Obstacles: %d", self!.knownObstacles.count)
+                    var i = 0
+                    for obstacle in self!.knownObstacles
                     {
-                        self!.knownObstacles.remove(at: i)
+                        let prediction = self!.knownObstacles[i].getMostProbablePrediction()
+                        let p = self!.knownObstacles[i].getMostFrequentPrediction()
+                        let label = prediction.classification+" "+p.classification
+                        let obstacleRect = obstacle.getObstaclePixelRect()
+                        self!.boundingBoxes[i].show(rect: obstacleRect, label: label, color: UIColor.blue)
+                        i+=1
                     }
-                }
-            }
-            
-            //Se un nuovo ostacolo non viene fuso con quelli già conosciuti
-            //allora è un nuovo ostacolo e va aggiunto.
-            for newObstacle in newObstacles
-            {
-                self!.knownObstacles.append(newObstacle)
-            }
-            
-            DispatchQueue.main.async
-            { [weak self] in
-                self!.clusterLbl.text = String(format:"Clusters: %d", counter)
-                self!.anchorLbl.text = String(format:"Anchors: %d", anchorCounter)
-                self!.obstacleLbl.text = String(format: "Obstacles: %d", self!.knownObstacles.count)
-                var i = 0
-                for obstacle in self!.knownObstacles
-                {
-                    let prediction = self!.knownObstacles[i].getMostProbablePrediction()
-                    let label = prediction.getDescriptionString()
-                    let obstacleRect = obstacle.getObstaclePixelRect()
-                    self!.boundingBoxes[i].show(rect: obstacleRect, label: label, color: UIColor.blue)
-                    i+=1
-                }
-                
-                i=self!.knownObstacles.count-newObstacles.count
-                while(i<self!.knownObstacles.count)
-                {
-                    let prediction = self!.knownObstacles[i].getMostProbablePrediction()
-                    let label = prediction.getDescriptionString()
-                    let obstacleRect = self!.knownObstacles[i].getObstaclePixelRect()
-                    self!.boundingBoxes[i].show(rect: obstacleRect, label: label, color: UIColor.red)
-                    i+=1
-                }
-                //MARK: Disattivo le bounding box che non servono
-                for i in stride(from: self!.knownObstacles.count, to: Constants.MAX_OBSTACLE_NUMBER, by: 1)
-                {
-                    self!.boundingBoxes[i].hide()
-                }
-                
-                self!.classification=false
-                
-                /*let orientation = UIInterfaceOrientation.portrait
-                let viewportSize = self!.arscnView.bounds.size
-                let transformation = frame.displayTransform(for: orientation, viewportSize: viewportSize)
-                
-                let contex = CIContext()
+                    
+                    i=self!.knownObstacles.count-newObstacles.count
+                    while(i<self!.knownObstacles.count)
+                    {
+                        let prediction = self!.knownObstacles[i].getMostProbablePrediction()
+                        let p = self!.knownObstacles[i].getMostFrequentPrediction()
+                        let label = prediction.classification+" "+p.classification
+                        let obstacleRect = self!.knownObstacles[i].getObstaclePixelRect()
+                        self!.boundingBoxes[i].show(rect: obstacleRect, label: label, color: UIColor.red)
+                        i+=1
+                    }
+                    //MARK: Disattivo le bounding box che non servono
+                    for i in stride(from: self!.knownObstacles.count, to: Constants.MAX_OBSTACLE_NUMBER, by: 1)
+                    {
+                        self!.boundingBoxes[i].hide()
+                    }
+                    
+                    /*let orientation = UIInterfaceOrientation.portrait
+                    let viewportSize = self!.arscnView.bounds.size
+                    let transformation = frame.displayTransform(for: orientation, viewportSize: viewportSize)
+                    
+                    let contex = CIContext()
 
-                let ciImage = CIImage(cvPixelBuffer: imageBuffer).transformed(by: transformation)
-                var buffer = CVPixelBuffer
-                contex.render(ciImage, to: <#T##CVPixelBuffer#>)
-                let image = UIImage(ciImage: ciImage)
-                self!.previewView.image=image*/
+                    let ciImage = CIImage(cvPixelBuffer: imageBuffer).transformed(by: transformation)
+                    var buffer = CVPixelBuffer
+                    contex.render(ciImage, to: <#T##CVPixelBuffer#>)
+                    let image = UIImage(ciImage: ciImage)
+                    self!.previewView.image=image*/
+                }
+                
+                let end = DispatchTime.now()
+                let nanoTime = end.uptimeNanoseconds - start.uptimeNanoseconds // <<<<< Difference in nano seconds (UInt64)
+                    let timeInterval = Double(nanoTime) / 1_000_000_000 // Technically could overflow for long running tests
+                self!.classification=false
+                print("Update : \(timeInterval) seconds")
             }
         }
     }

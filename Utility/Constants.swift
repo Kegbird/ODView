@@ -16,7 +16,8 @@ class Constants
     public static let MAX_ANCHOR_DISTANCE : Float = 4.0
     /*Bounding boxes whose screen area are lower than this value will not be
     classified.*/
-    public static let OBSTACLE_DEFAULT_PREDICTION =  Prediction(classification: "Obstacle", confidencePercentage: 0.8)
+    public static let OBSTACLE_DEFAULT_CONFIDENCE : Float = 0.8
+    public static let OBSTACLE_DEFAULT_PREDICTION =  Prediction(classification: "Obstacle", confidencePercentage: OBSTACLE_DEFAULT_CONFIDENCE)
     public static let MIN_BOUNDING_BOX_AREA : CGFloat = 4000
     public static let MIN_NUMBER_OF_PREDICTIONS : Int = 20
     public static let MAX_OBSTACLE_NUMBER : Int = 50

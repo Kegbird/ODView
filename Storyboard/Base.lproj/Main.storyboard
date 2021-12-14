@@ -80,12 +80,14 @@
         <!--Obstacle Finder View Controller-->
         <scene sceneID="tne-QT-ifu">
             <objects>
+                <tapGestureRecognizer id="46S-rN-uTp"/>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
                 <viewController id="BYZ-38-t0r" customClass="ObstacleFinderViewController" customModule="ODView" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="dLS-A3-tLp">
                         <rect key="frame" x="0.0" y="0.0" width="375" height="647"/>
                         <autoresizingMask key="autoresizingMask"/>
                         <subviews>
-                            <arscnView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="kjD-C7-NCn">
+                            <arscnView multipleTouchEnabled="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="kjD-C7-NCn">
                                 <rect key="frame" x="0.0" y="0.0" width="375" height="647"/>
                                 <gestureRecognizers/>
                                 <connections>
@@ -140,8 +142,6 @@
                         <outlet property="previewView" destination="3Qs-Ed-r0w" id="Yas-yJ-m6L"/>
                     </connections>
                 </viewController>
-                <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
-                <tapGestureRecognizer id="46S-rN-uTp"/>
             </objects>
             <point key="canvasLocation" x="32.799999999999997" y="4.9475262368815596"/>
         </scene>

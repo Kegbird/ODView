@@ -15,6 +15,7 @@ class Obstacle
     private var minWorldPosition : SCNVector3!
     private var maxWorldPosition : SCNVector3!
     private var predictions : [String : Float]!
+    private var predictionFrequencies : [String : Int]!
     
     public init()
     {
@@ -23,11 +24,14 @@ class Obstacle
         maxPointBoundingBox = nil
         minWorldPosition = nil
         maxWorldPosition = nil
+        predictions=[:]
+        predictionFrequencies=[:]
     }
     
     public init(_ obstacle : Obstacle)
     {
         predictions = obstacle.predictions
+        predictionFrequencies = obstacle.predictionFrequencies
         minPointBoundingBox = obstacle.minPointBoundingBox
         maxPointBoundingBox = obstacle.maxPointBoundingBox
         minWorldPosition = obstacle.minWorldPosition
@@ -48,13 +52,39 @@ class Obstacle
         let confidence = newPrediction.confidencePercentage
         guard predictions[classification] != nil else
         {
-            predictions[classification]=newPrediction.confidencePercentage
+            self.predictions[classification]=confidence
+            self.predictionFrequencies[classification]=1
             return
         }
         if(confidence>predictions[classification]!)
         {
             predictions[classification]=confidence
         }
+        if(confidence>Constants.MIN_PREDICTION_CONFIDENCE)
+        {
+            predictionFrequencies[classification]!+=1
+        }
+    }
+    
+    public func getMostFrequentPrediction() -> Prediction
+    {
+        var prediction : Prediction = Constants.OBSTACLE_DEFAULT_PREDICTION
+        var max = 0
+        
+        for key in predictionFrequencies.keys
+        {
+            if(predictionFrequencies[key]!>max)
+            {
+                prediction=Prediction(classification: key, confidencePercentage: Constants.OBSTACLE_DEFAULT_CONFIDENCE)
+                max=predictionFrequencies[key]!
+            }
+        }
+        
+        if(max<Constants.MIN_NUMBER_OF_PREDICTIONS)
+        {
+            return Constants.OBSTACLE_DEFAULT_PREDICTION
+        }
+        return prediction
     }
     
     public func getMostProbablePrediction() -> Prediction
