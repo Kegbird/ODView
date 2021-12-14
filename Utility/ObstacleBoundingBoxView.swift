@@ -49,7 +49,7 @@ class ObstacleBoundingBoxView
         let attributes = [
             NSAttributedString.Key.font: textLayer.font as Any
         ]
-        let textRect = label.boundingRect(with: CGSize(width: 100, height: 100),
+        let textRect = label.boundingRect(with: CGSize(width: 400, height: 100),
                                           options: .usesFontLeading,
                                           attributes: attributes, context: nil)
         let textSize = CGSize(width: textRect.width, height: textRect.height)

@@ -16,7 +16,7 @@
                         <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Altezza dal suolo:" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontForContentSizeCategory="YES" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="bj4-d9-6Po" userLabel="InfoLabel">
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Altezza dal suolo:" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="bj4-d9-6Po" userLabel="InfoLabel">
                                 <rect key="frame" x="50.5" y="125" width="274" height="44.5"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="37"/>
                                 <nil key="textColor"/>
@@ -83,7 +83,7 @@
                 <viewController id="BYZ-38-t0r" customClass="ObstacleFinderViewController" customModule="ODView" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="dLS-A3-tLp">
                         <rect key="frame" x="0.0" y="0.0" width="375" height="647"/>
-                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                        <autoresizingMask key="autoresizingMask"/>
                         <subviews>
                             <arscnView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="kjD-C7-NCn">
                                 <rect key="frame" x="0.0" y="0.0" width="375" height="647"/>
@@ -98,7 +98,7 @@
                                 <color key="textColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                 <nil key="highlightedColor"/>
                             </label>
-                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="efq-WT-4Kx" userLabel="PredictionLabel">
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="efq-WT-4Kx" userLabel="ObstacleLbl">
                                 <rect key="frame" x="10" y="606.5" width="0.0" height="0.0"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="25"/>
                                 <color key="textColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
@@ -111,7 +111,7 @@
                                 <nil key="highlightedColor"/>
                             </label>
                             <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="3Qs-Ed-r0w" userLabel="Preview VIew">
-                                <rect key="frame" x="172" y="317" width="203" height="330"/>
+                                <rect key="frame" x="156" y="276" width="203" height="330"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <preferredSymbolConfiguration key="preferredSymbolConfiguration" scale="default"/>
                             </imageView>
@@ -119,15 +119,15 @@
                         <viewLayoutGuide key="safeArea" id="5lF-OM-9Yk"/>
                         <color key="backgroundColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                         <constraints>
-                            <constraint firstItem="efq-WT-4Kx" firstAttribute="leading" secondItem="kjD-C7-NCn" secondAttribute="leading" constant="10" id="4Fq-G3-cx4"/>
-                            <constraint firstItem="kjD-C7-NCn" firstAttribute="leading" secondItem="5lF-OM-9Yk" secondAttribute="leading" id="HO4-Q1-YBp"/>
-                            <constraint firstItem="S7I-T6-emA" firstAttribute="leading" secondItem="kjD-C7-NCn" secondAttribute="leading" priority="1" constant="10" id="PVd-V5-99a"/>
-                            <constraint firstItem="5lF-OM-9Yk" firstAttribute="trailing" secondItem="kjD-C7-NCn" secondAttribute="trailing" id="QS5-qp-AXD"/>
-                            <constraint firstItem="ueB-yO-pCZ" firstAttribute="leading" secondItem="kjD-C7-NCn" secondAttribute="leading" constant="10" id="X6H-c3-mQ0"/>
+                            <constraint firstItem="kjD-C7-NCn" firstAttribute="leading" secondItem="5lF-OM-9Yk" secondAttribute="leading" id="0Pr-cK-gYq"/>
+                            <constraint firstItem="ueB-yO-pCZ" firstAttribute="leading" secondItem="dLS-A3-tLp" secondAttribute="leadingMargin" constant="-6" id="3T5-6s-7lW"/>
                             <constraint firstItem="ueB-yO-pCZ" firstAttribute="top" secondItem="S7I-T6-emA" secondAttribute="bottom" id="Ym2-MB-UsE"/>
                             <constraint firstItem="5lF-OM-9Yk" firstAttribute="bottom" secondItem="kjD-C7-NCn" secondAttribute="bottom" id="eT2-uo-ua5"/>
+                            <constraint firstItem="ueB-yO-pCZ" firstAttribute="leading" secondItem="efq-WT-4Kx" secondAttribute="leading" id="ejx-z1-0Ve"/>
+                            <constraint firstAttribute="bottomMargin" secondItem="ueB-yO-pCZ" secondAttribute="bottom" constant="40.5" id="hAA-SY-tNF"/>
+                            <constraint firstItem="ueB-yO-pCZ" firstAttribute="leading" secondItem="S7I-T6-emA" secondAttribute="leading" id="hxy-HC-Kbj"/>
                             <constraint firstItem="S7I-T6-emA" firstAttribute="top" secondItem="efq-WT-4Kx" secondAttribute="bottom" id="knt-Cd-SUS"/>
-                            <constraint firstItem="kjD-C7-NCn" firstAttribute="baseline" secondItem="ueB-yO-pCZ" secondAttribute="firstBaseline" constant="16.5" symbolType="layoutAnchor" id="quS-wd-YBX"/>
+                            <constraint firstItem="5lF-OM-9Yk" firstAttribute="trailing" secondItem="kjD-C7-NCn" secondAttribute="trailing" id="nZg-j5-TpO"/>
                             <constraint firstItem="kjD-C7-NCn" firstAttribute="top" secondItem="5lF-OM-9Yk" secondAttribute="top" id="s55-4e-eEC"/>
                         </constraints>
                     </view>
@@ -136,7 +136,7 @@
                         <outlet property="anchorLbl" destination="S7I-T6-emA" id="qbC-ZY-vjy"/>
                         <outlet property="arscnView" destination="kjD-C7-NCn" id="TYJ-1p-NX1"/>
                         <outlet property="clusterLbl" destination="ueB-yO-pCZ" id="QEy-Ho-ERT"/>
-                        <outlet property="predictionLabel" destination="efq-WT-4Kx" id="hAG-uU-SAM"/>
+                        <outlet property="obstacleLbl" destination="efq-WT-4Kx" id="HPf-ke-khF"/>
                         <outlet property="previewView" destination="3Qs-Ed-r0w" id="Yas-yJ-m6L"/>
                     </connections>
                 </viewController>

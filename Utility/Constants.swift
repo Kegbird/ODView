@@ -14,17 +14,15 @@ class Constants
     public static let MAX_TRIANGLE_DISTANCE : Float = 4.0
     //All anchors which are farther than 4 meter will be removed
     public static let MAX_ANCHOR_DISTANCE : Float = 4.0
+    /*Bounding boxes whose screen area are lower than this value will not be
+    classified.*/
+    public static let OBSTACLE_DEFAULT_PREDICTION =  Prediction(classification: "Obstacle", confidencePercentage: 0.8)
+    public static let MIN_BOUNDING_BOX_AREA : CGFloat = 4000
+    public static let MIN_NUMBER_OF_PREDICTIONS : Int = 20
     public static let MAX_OBSTACLE_NUMBER : Int = 50
     public static let MERGE_DISTANCE : Float = 0.5
     public static let AREA_THRESHOLD : CGFloat = 1.0
     public static let MIN_PREDICTION_CONFIDENCE : Float = 0.80
-    public static let MIN_POINTS_NUMBER : Int = 100
-    public static let MIN_NUMBER_TRIANGLES_FOR_CLUSTER : Int = 10
+    public static let MIN_NUMBER_TRIANGLES_FOR_CLUSTER : Int = 20
     public static let FRAME_PER_SECOND : Float = 30.0
-    public static var WIDTH : CGFloat = 0
-    public static var HEIGHT : CGFloat = 0
-    public static var OFFSET_Y : CGFloat = 0
-    public static var SCALE = CGAffineTransform.identity
-    public static var TRANSFORM = CGAffineTransform.identity
-    public static let OFFSET = -20
 }

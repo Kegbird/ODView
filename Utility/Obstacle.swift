@@ -14,13 +14,62 @@ class Obstacle
     private var maxPointBoundingBox : CGPoint!
     private var minWorldPosition : SCNVector3!
     private var maxWorldPosition : SCNVector3!
+    private var predictions : [String : Float]!
     
     public init()
+    {
+        predictions = [:]
+        minPointBoundingBox = nil
+        maxPointBoundingBox = nil
+        minWorldPosition = nil
+        maxWorldPosition = nil
+    }
+    
+    public init(_ obstacle : Obstacle)
+    {
+        predictions = obstacle.predictions
+        minPointBoundingBox = obstacle.minPointBoundingBox
+        maxPointBoundingBox = obstacle.maxPointBoundingBox
+        minWorldPosition = obstacle.minWorldPosition
+        maxWorldPosition = obstacle.maxWorldPosition
+    }
+    
+    public func resetBoundingBox()
     {
         minPointBoundingBox = nil
         maxPointBoundingBox = nil
         minWorldPosition = nil
         maxWorldPosition = nil
+    }
+    
+    public func addNewPrediction(newPrediction : Prediction)
+    {
+        let classification = newPrediction.classification
+        let confidence = newPrediction.confidencePercentage
+        guard predictions[classification] != nil else
+        {
+            predictions[classification]=newPrediction.confidencePercentage
+            return
+        }
+        if(confidence>predictions[classification]!)
+        {
+            predictions[classification]=confidence
+        }
+    }
+    
+    public func getMostProbablePrediction() -> Prediction
+    {
+        var prediction : Prediction = Constants.OBSTACLE_DEFAULT_PREDICTION
+        var max : Float = prediction.confidencePercentage
+        for key in predictions.keys
+        {
+            if(max<predictions[key]!)
+            {
+                prediction=Prediction(classification: key, confidencePercentage: predictions[key]!)
+                max=predictions[key]!
+            }
+        }
+        return prediction
     }
     
     public func getMinPointBoundingBox() -> CGPoint
@@ -106,9 +155,13 @@ class Obstacle
             return CGRect.zero
         }
         
-        let width = maxPointBoundingBox.x - minPointBoundingBox.x
-        let height = maxPointBoundingBox.y - minPointBoundingBox.y
-        let rect = CGRect(x: minPointBoundingBox.x, y: minPointBoundingBox.y, width: width, height: height)
+        var width = maxPointBoundingBox.x - minPointBoundingBox.x
+        var height = maxPointBoundingBox.y - minPointBoundingBox.y
+        width = width * 1.0/UIScreen.main.scale
+        height = height * 1.0/UIScreen.main.scale
+        let minX = minPointBoundingBox.x * 1.0/UIScreen.main.scale
+        let minY = minPointBoundingBox.y * 1.0/UIScreen.main.scale
+        let rect = CGRect(x: minX, y: minY, width: width, height: height)
         return rect
     }
     
@@ -119,13 +172,16 @@ class Obstacle
         {
             return CGRect.zero
         }
-        
-        let pixelRect = getObstaclePixelRect()
-        let minX = pixelRect.minX*UIScreen.main.scale
-        let minY = pixelRect.minX*UIScreen.main.scale
-        let width = pixelRect.width*UIScreen.main.scale
-        let height = pixelRect.height*UIScreen.main.scale
-        return CGRect(x: minX, y: minY, width: width, height: height)
+        let width = maxPointBoundingBox.x - minPointBoundingBox.x
+        let height = maxPointBoundingBox.y - minPointBoundingBox.y
+        return CGRect(x: minPointBoundingBox.x, y: minPointBoundingBox.y, width: width, height: height)
+    }
+    
+    public func getObstaclePixelRectArea() -> CGFloat
+    {
+        let rect = getObstaclePixelRect()
+        let area = rect.width * rect.height
+        return area
     }
     
     public func getWorldCornerPositions() -> [SCNVector3]
@@ -173,12 +229,18 @@ class Obstacle
     
     public func areIntersected(other : Obstacle) -> Bool
     {
-        if(maxWorldPosition.x>=other.minWorldPosition.x &&
+        if((maxWorldPosition.x>=other.minWorldPosition.x &&
            minWorldPosition.x<=other.maxWorldPosition.x &&
            maxWorldPosition.y>=other.minWorldPosition.y &&
            minWorldPosition.y<=other.maxWorldPosition.y &&
            maxWorldPosition.z>=other.minWorldPosition.z &&
-           minWorldPosition.z<=other.maxWorldPosition.z)
+           minWorldPosition.z<=other.maxWorldPosition.z) ||
+          (other.maxWorldPosition.x>=minWorldPosition.x &&
+           other.minWorldPosition.x<=maxWorldPosition.x &&
+           other.maxWorldPosition.y>=minWorldPosition.y &&
+           other.minWorldPosition.y<=maxWorldPosition.y &&
+           other.maxWorldPosition.z>=minWorldPosition.z &&
+           other.minWorldPosition.z<=maxWorldPosition.z))
         {
             return true
         }
@@ -214,6 +276,10 @@ class Obstacle
         if(minPointBoundingBox==nil || minWorldPosition==nil
            || maxPointBoundingBox==nil || maxWorldPosition==nil)
         {
+            minWorldPosition = other.minWorldPosition
+            maxWorldPosition = other.maxWorldPosition
+            minPointBoundingBox = other.minPointBoundingBox
+            maxPointBoundingBox = other.maxPointBoundingBox
             return
         }
         //Min world position
@@ -242,7 +308,6 @@ class Obstacle
         {
             maxWorldPosition.z = other.maxWorldPosition.z
         }
-        
         //Min bounding box
         if(other.minPointBoundingBox.x<minPointBoundingBox.x)
         {
