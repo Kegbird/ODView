@@ -177,7 +177,7 @@ class Obstacle
         if(screenPoint.y>maxPointBoundingBox.y) { maxPointBoundingBox.y = screenPoint.y }
     }
     
-    public func getObstaclePixelRect() -> CGRect
+    public func getObstacleRect() -> CGRect
     {
         if(minPointBoundingBox==nil || minWorldPosition==nil
            || maxPointBoundingBox==nil || maxWorldPosition==nil)
@@ -185,31 +185,17 @@ class Obstacle
             return CGRect.zero
         }
         
-        var width = maxPointBoundingBox.x - minPointBoundingBox.x
-        var height = maxPointBoundingBox.y - minPointBoundingBox.y
-        width = width * 1.0/UIScreen.main.scale
-        height = height * 1.0/UIScreen.main.scale
-        let minX = minPointBoundingBox.x * 1.0/UIScreen.main.scale
-        let minY = minPointBoundingBox.y * 1.0/UIScreen.main.scale
+        let width = maxPointBoundingBox.x - minPointBoundingBox.x
+        let height = maxPointBoundingBox.y - minPointBoundingBox.y
+        let minX = minPointBoundingBox.x
+        let minY = minPointBoundingBox.y
         let rect = CGRect(x: minX, y: minY, width: width, height: height)
         return rect
     }
     
-    public func getObstaclePointRect() -> CGRect
+    public func getObstacleRectArea() -> CGFloat
     {
-        if(minPointBoundingBox==nil || minWorldPosition==nil
-           || maxPointBoundingBox==nil || maxWorldPosition==nil)
-        {
-            return CGRect.zero
-        }
-        let width = maxPointBoundingBox.x - minPointBoundingBox.x
-        let height = maxPointBoundingBox.y - minPointBoundingBox.y
-        return CGRect(x: minPointBoundingBox.x, y: minPointBoundingBox.y, width: width, height: height)
-    }
-    
-    public func getObstaclePixelRectArea() -> CGFloat
-    {
-        let rect = getObstaclePixelRect()
+        let rect = getObstacleRect()
         let area = rect.width * rect.height
         return area
     }

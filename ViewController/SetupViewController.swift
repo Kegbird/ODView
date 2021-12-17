@@ -14,6 +14,11 @@ class SetupViewController : UIViewController
     
     @IBOutlet weak var heightLabel: UILabel!
     
+    override var shouldAutorotate: Bool
+    {
+        return false
+    }
+    
     @IBAction func IncrementHeight(_ sender: Any) {
         if(height+quote>=2) { return }
         height+=quote

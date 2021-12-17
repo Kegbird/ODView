@@ -48,7 +48,7 @@ class ImagePredictor
         var i = 0
         for obstacle in obstacles
         {
-            if(obstacle.getObstaclePixelRectArea()<Constants.MIN_BOUNDING_BOX_AREA)
+            if(obstacle.getObstacleRectArea()<Constants.MIN_BOUNDING_BOX_AREA)
             {
                 continue
             }
@@ -56,7 +56,7 @@ class ImagePredictor
             (bestPrediction : Prediction, index : Int) -> Void in
                 predictions[index]=bestPrediction
             }
-            let pointRegionOfInterest = obstacle.getObstaclePointRect()
+            let pointRegionOfInterest = obstacle.getObstacleRect()
             var regionOfInterest = VNNormalizedRectForImageRect(pointRegionOfInterest, cgImage!.width, cgImage!.height)
             var minY = 1-regionOfInterest.minY-regionOfInterest.height
             if(minY<=0) { minY = 0 }

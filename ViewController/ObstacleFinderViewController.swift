@@ -25,7 +25,7 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
     
     private var fileName : String!
     
-    private var viewportSize : CGSize!
+    private var viewport : CGRect!
     
     private var obstaclePerAnchor : [UUID: [Obstacle]]!
     
@@ -76,7 +76,7 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
         classificationQueue = DispatchQueue(label: "com.odview.classification.serial", qos: .userInteractive)
         obstaclePerAnchor = [:]
         knownObstacles = []
-        viewportSize = CGSize(width: 1170, height: 2259)
+        viewport = CGRect(x: 0.0, y: 0.0, width: 390.0, height: 753.0)
         if(chestHeight==nil) { chestHeight = 1.5 }
     }
     
@@ -229,12 +229,39 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
             node.addChildNode(planeNode)
         }
     }
+    
+    func adaptFrame(frame : ARFrame) -> CGImage?
+    {
+        let imageBuffer = frame.capturedImage
+        let imageSize = CGSize(width: CVPixelBufferGetWidth(imageBuffer), height: CVPixelBufferGetHeight(imageBuffer))
+        let viewPortSize = viewport.size
+        let interfaceOrientation : UIInterfaceOrientation = .portrait
+        let frameImage = CIImage(cvImageBuffer: imageBuffer)
+        // Normalizzo coordinate
+        let normalizeTransform = CGAffineTransform(scaleX: 1.0/imageSize.width, y: 1.0/imageSize.height)
+        // Ruoto il frame
+        let flipTransform = (interfaceOrientation.isPortrait) ? CGAffineTransform(scaleX: -1, y: -1).translatedBy(x: -1, y: -1) : .identity
+        // Passo a screen coordinate
+        let displayTransform = frame.displayTransform(for: interfaceOrientation, viewportSize: viewPortSize)
+        // Scalo
+        let toViewPortTransform = CGAffineTransform(scaleX: viewPortSize.width, y: viewPortSize.height)
+        // Crop di quello che non c'è a schermo
+        let transformedImage = frameImage.transformed(by: normalizeTransform.concatenating(flipTransform).concatenating(displayTransform).concatenating(toViewPortTransform)).cropped(to: viewport)
+        // Renderizzo il frame croppato
+        let context = CIContext(options: [CIContextOption.useSoftwareRenderer: false])
+        let frameCgImage = context.createCGImage(transformedImage, from: transformedImage.extent)
+        context.clearCaches()
+        return frameCgImage
+    }
 
     func findObstacles(node: SCNNode, anchor: ARAnchor, renderer: SCNSceneRenderer)
     {
         guard let frame = arscnView.session.currentFrame else
         {
-            processingPerAnchor[anchor.identifier]=false
+            lockQueue.async
+            { [weak self] in
+                self!.processingPerAnchor[anchor.identifier]=false
+            }
             return
         }
         
@@ -250,7 +277,10 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
         //L'ancora che voglio aggiungere è troppo distante
         if(SCNVector3.distanceBetween(cameraWorldPosition, currentAnchorWorldPosition)>=Constants.MAX_ANCHOR_DISTANCE)
         {
-            processingPerAnchor[anchor.identifier]=false
+            lockQueue.async
+            { [weak self] in
+                self!.processingPerAnchor[anchor.identifier]=false
+            }
             return
         }
         
@@ -280,6 +310,7 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
                     walls.append((wallWorldPosition, normal))
                 }
             }
+            
             for uuid in self!.floors.keys
             {
                 if(self!.floors[uuid] != nil)
@@ -309,24 +340,32 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
             //Se non ho piani che corrispondono al suolo
             if(floors.count==0)
             {
-                self!.processingPerAnchor[anchor.identifier]=false
+                self!.lockQueue.async
+                { [weak self] in
+                    self!.processingPerAnchor[anchor.identifier]=false
+                }
                 return
             }
             
             var faceIndices : [Int] = []
-            var points : [SCNVector3] = []
+            var vertices : [SCNVector3] = []
             var indices : [Int32] = []
             let floorLevel = cameraWorldPosition.y-self!.chestHeight
+            
+            var indicesAdded : [UInt32: Int32] = [:]
+            print("pre filtering:\(meshAnchor.geometry.vertices.count)")
+            
+            var limiter = 0
             
             //MARK: Filtro facce
             for i in 0..<meshGeometry.faces.count
             {
-                let triangleLocalPosition = meshAnchor.geometry.centerOf(faceWithIndex: i)
+                let triangleLocalPosition = meshGeometry.centerOf(faceWithIndex: i)
                 let triangleWorldPosition = node.convertPosition(triangleLocalPosition, to: nil)
-                let triangleScreenPoint = frame.camera.projectPoint(triangleWorldPosition.getSimd(), orientation: .portrait, viewportSize: self!.viewportSize)
+                let triangleScreenPoint = frame.camera.projectPoint(triangleWorldPosition.getSimd(), orientation: .portrait, viewportSize: self!.viewport.size)
                 
                 //Rimuovo le facce fuori dallo schermo
-                if(triangleScreenPoint.x<0 || self!.viewportSize.width<triangleScreenPoint.x || triangleScreenPoint.y<0 || triangleScreenPoint.y>self!.viewportSize.height)
+                if(triangleScreenPoint.x<0 || self!.viewport.width<triangleScreenPoint.x || triangleScreenPoint.y<0 || triangleScreenPoint.y>self!.viewport.height)
                 {
                     continue
                 }
@@ -341,7 +380,7 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
                 
                 var shouldContinue = false
                 
-                //Rimuovo triangoli vicini ai muri o dietro ai muri
+                //Rimuovo triangoli vicini ai muri
                 for wall in walls
                 {
                     let normal = wall.1.getSimd()
@@ -371,10 +410,6 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
                 
                 if(shouldContinue) { continue }
                 
-                let verticesLocalPosition = meshGeometry.verticesOf(faceWithIndex: i).map
-                {
-                    SCNVector3(x: $0.0, y: $0.1, z: $0.2)
-                }
                 /*
                  Rimuovo le facce che sono sotto l'ipotetica Y del suolo
                  La Y del suolo è calcolata partendo dalla Y del device meno
@@ -384,22 +419,43 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
                 {
                     continue
                 }
-    
+                
+                let verticesLocalPosition = meshGeometry.verticesOf(faceWithIndex: i).map
+                {
+                    SCNVector3(x: $0.0, y: $0.1, z: $0.2)
+                }
+                
+                let vertexIndices = meshGeometry.vertexIndicesOf(faceWithIndex: i)
                 faceIndices.append(i)
-                points.append(verticesLocalPosition[0])
-                indices.append(Int32(points.count-1))
-                points.append(verticesLocalPosition[1])
-                indices.append(Int32(points.count-1))
-                points.append(verticesLocalPosition[2])
-                indices.append(Int32(points.count-1))
+                //Per evitare di aggiungere punti che non mi servono
+                for i in 0..<3
+                {
+                    if(indicesAdded[vertexIndices[i]] != nil)
+                    {
+                        indices.append(indicesAdded[vertexIndices[i]]!)
+                    }
+                    else
+                    {
+                        vertices.append(verticesLocalPosition[i])
+                        indices.append(Int32(vertices.count-1))
+                        indicesAdded[vertexIndices[i]]=Int32(vertices.count-1)
+                    }
+                }
+                if(limiter>Constants.MAX_NUMBER_OF_TRIANGLE)
+                {
+                    break
+                }
+                limiter=limiter+1
             }
             
             //Visualizzo le facce degli ostacoli
-            node.geometry = self!.createGeometry(vertices: points, indices: indices, primitiveType: .triangles)
+            node.geometry = self!.createGeometry(vertices: vertices, indices: indices, primitiveType: .triangles)
             node.geometry?.firstMaterial?.diffuse.contents=UIColor(cgColor: CGColor(red: 1, green: 1, blue: 1, alpha: 0.5))
             
             var faceClusters : [Set<UInt32>] = []
             var pointClusters : [Set<UInt32>] = []
+            
+            print("post filtering:\(vertices.count)")
             
             //MARK: Clustering
             for faceIndex in faceIndices
@@ -469,7 +525,7 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
                     
                     for j in 0..<3
                     {
-                        obstacle.updateBoundaries(frame: frame, viewportSize: self!.viewportSize, worldPoint: worldVertices[j])
+                        obstacle.updateBoundaries(frame: frame, viewportSize: self!.viewport.size, worldPoint: worldVertices[j])
                     }
                 }
                 obstacles.append(obstacle)
@@ -481,14 +537,14 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
             self!.lockQueue.async
             { [weak self] in
                 self!.obstaclePerAnchor[anchor.identifier]=obstacles
+                self!.processingPerAnchor[anchor.identifier]=false
             }
             
             let end = DispatchTime.now()
             let nanoTime = end.uptimeNanoseconds - start.uptimeNanoseconds // <<<<< Difference in nano seconds (UInt64)
                 let timeInterval = Double(nanoTime) / 1_000_000_000 // Technically could overflow for long running tests
-
             print("\(meshAnchor.geometry.faces.count) : \(timeInterval) seconds")
-            self!.processingPerAnchor[anchor.identifier]=false
+            
         }
     }
     
@@ -536,11 +592,16 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
         }
         else if((anchor as? ARMeshAnchor) != nil)
         {
-            if(processingPerAnchor[anchor.identifier]==nil)
-            {
-                processingPerAnchor[anchor.identifier]=false
+            lockQueue.sync
+            { [weak self] in
+                if(self!.processingPerAnchor[anchor.identifier]==nil)
+                {
+                    self!.processingPerAnchor[anchor.identifier]=false
+                }
+                let processing = self!.processingPerAnchor[anchor.identifier]!
+                guard !processing else { return }
+                self!.processingPerAnchor[anchor.identifier]=true
             }
-            guard !processingPerAnchor[anchor.identifier]! else { return }
             findObstacles(node: node, anchor: anchor, renderer: renderer)
         }
     }
@@ -612,13 +673,9 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
             //MARK: Classificazione degli ostacoli
             DispatchQueue.global(qos: .userInteractive).async
             { [weak self] in
-                var frameCgImage: CGImage?
-                VTCreateCGImageFromCVPixelBuffer(frame.capturedImage, options: nil, imageOut: &frameCgImage)
-                var frameImage = UIImage(cgImage: frameCgImage!)
-                frameImage=frameImage.rotate(radians: .pi/2)!
-                
+                let frameCgImage = self!.adaptFrame(frame: frame)
                 //Passo al classificatore il frame con le bounding box
-                self!.imagePredictor.classifyNewObstacles(cgImage: frameImage.cgImage!, for: &newObstacles)
+                self!.imagePredictor.classifyNewObstacles(cgImage: frameCgImage, for: &newObstacles)
                 
                 if(self!.knownObstacles.count>0)
                 {
@@ -672,9 +729,8 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
                     for obstacle in self!.knownObstacles
                     {
                         let prediction = self!.knownObstacles[i].getMostProbablePrediction()
-                        let p = self!.knownObstacles[i].getMostFrequentPrediction()
-                        let label = prediction.classification+" "+p.classification
-                        let obstacleRect = obstacle.getObstaclePixelRect()
+                        let label = prediction.getDescriptionString()
+                        let obstacleRect = obstacle.getObstacleRect()
                         self!.boundingBoxes[i].show(rect: obstacleRect, label: label, color: UIColor.blue)
                         i+=1
                     }
@@ -683,9 +739,8 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
                     while(i<self!.knownObstacles.count)
                     {
                         let prediction = self!.knownObstacles[i].getMostProbablePrediction()
-                        let p = self!.knownObstacles[i].getMostFrequentPrediction()
-                        let label = prediction.classification+" "+p.classification
-                        let obstacleRect = self!.knownObstacles[i].getObstaclePixelRect()
+                        let label = prediction.getDescriptionString()
+                        let obstacleRect = self!.knownObstacles[i].getObstacleRect()
                         self!.boundingBoxes[i].show(rect: obstacleRect, label: label, color: UIColor.red)
                         i+=1
                     }
@@ -694,25 +749,13 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
                     {
                         self!.boundingBoxes[i].hide()
                     }
-                    
-                    /*let orientation = UIInterfaceOrientation.portrait
-                    let viewportSize = self!.arscnView.bounds.size
-                    let transformation = frame.displayTransform(for: orientation, viewportSize: viewportSize)
-                    
-                    let contex = CIContext()
-
-                    let ciImage = CIImage(cvPixelBuffer: imageBuffer).transformed(by: transformation)
-                    var buffer = CVPixelBuffer
-                    contex.render(ciImage, to: <#T##CVPixelBuffer#>)
-                    let image = UIImage(ciImage: ciImage)
-                    self!.previewView.image=image*/
                 }
                 
                 let end = DispatchTime.now()
                 let nanoTime = end.uptimeNanoseconds - start.uptimeNanoseconds // <<<<< Difference in nano seconds (UInt64)
                     let timeInterval = Double(nanoTime) / 1_000_000_000 // Technically could overflow for long running tests
+                //print(timeInterval)
                 self!.classification=false
-                print("Update : \(timeInterval) seconds")
             }
         }
     }

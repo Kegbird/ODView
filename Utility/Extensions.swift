@@ -23,31 +23,6 @@ extension Array where Element: Equatable
     }
 }
 
-extension UIImage {
-    public func rotate(radians: Float) -> UIImage?
-    {
-        var newSize = CGRect(origin: CGPoint.zero, size: self.size).applying(CGAffineTransform(rotationAngle: CGFloat(radians))).size
-        // Trim off the extremely small float value to prevent core graphics from rounding it up
-        newSize.width = floor(newSize.width)
-        newSize.height = floor(newSize.height)
-
-        UIGraphicsBeginImageContextWithOptions(newSize, false, self.scale)
-        let context = UIGraphicsGetCurrentContext()!
-
-        // Move origin to middle
-        context.translateBy(x: newSize.width/2, y: newSize.height/2)
-        // Rotate around middle
-        context.rotate(by: CGFloat(radians))
-        // Draw the image at its center
-        self.draw(in: CGRect(x: -self.size.width/2, y: -self.size.height/2, width: self.size.width, height: self.size.height))
-
-        let newImage = UIGraphicsGetImageFromCurrentImageContext()
-        UIGraphicsEndImageContext()
-
-        return newImage
-    }
-}
-
 extension SCNVector3
 {
     public static func distanceBetween(_ first: SCNVector3, _ second: SCNVector3) -> Float
@@ -78,16 +53,6 @@ extension SCNVector3
         return 3
     }
     
-    public func kdDimension(_ dimension: Int) -> Double {
-        if dimension==0 { return Double(self.x) }
-        else if dimension==1 { return Double(self.y) }
-        return Double(self.z)
-    }
-    
-    public func squaredDistance(to otherPoint: SCNVector3) -> Double {
-        return Double(sqrt(pow(self.x-otherPoint.x,2)+pow(self.y-otherPoint.y,2)+pow(self.z-otherPoint.z,2)))
-    }
-    
     public func dotProduct(_ otherVector: SCNVector3) -> Double
     {
         return Double(abs(self.x*otherVector.x+self.y*otherVector.y+self.z*otherVector.z))
@@ -103,7 +68,8 @@ extension SCNVector3
     }
 }
 
-extension ARMeshGeometry {
+extension ARMeshGeometry
+{
     func classificationOf(faceWithIndex index: Int) -> ARMeshClassification
     {
         guard let classification = classification else { return .none }
@@ -153,9 +119,23 @@ extension ARMeshGeometry {
         let normal = SCNVector3(cross(ba, ca)).normalize()
         return normal
     }
+ 
+    //Restituisce gli indici delle facce, ordinate dalle più vicine
+    //alle più distanti
+    func sortByDistance(_ from : simd_float4) -> [Int]
+    {
+        let fromPosition = SCNVector3(x: from.x, y: from.y, z: from.z)
+        var result : [Int] = Array(0...faces.count-1)
+        result.sort
+        {
+            SCNVector3.distanceBetween(centerOf(faceWithIndex: $0), fromPosition)>SCNVector3.distanceBetween(centerOf(faceWithIndex: $1), fromPosition)
+        }
+        return result
+    }
     
     //Return the vertices of the face indicized with id index
-    func verticesOf(faceWithIndex index: Int) -> [(Float, Float, Float)] {
+    func verticesOf(faceWithIndex index: Int) -> [(Float, Float, Float)]
+    {
         let vertexIndices = vertexIndicesOf(faceWithIndex: index)
         let vertices = vertexIndices.map { vertex(at: $0) }
         return vertices
