@@ -36,28 +36,26 @@ class ImagePredictor
         return imageClassificationRequest
     }
     
-    func classifyNewObstacles(cgImage: CGImage?, for obstacles : inout [Obstacle])
+    func classifyNewObstacles(cgImage: CGImage?, for obstacles : [Obstacle]) -> [Prediction]
     {
+        var predictions = Array.init(repeating: Constants.OBSTACLE_DEFAULT_PREDICTION, count: obstacles.count)
+        
         guard cgImage != nil else
         {
-            return
+            return predictions
         }
         
-        var predictions : [Prediction?] = Array.init(repeating: nil, count: obstacles.count)
         var requests : [VNRequest] = []
         var i = 0
         for obstacle in obstacles
         {
-            if(obstacle.getObstacleRectArea()<Constants.MIN_BOUNDING_BOX_AREA)
+            let obstacleRect = obstacle.getObstacleRect()
+            let completionHandler =
             {
-                continue
-            }
-            let completionHandler = {
             (bestPrediction : Prediction, index : Int) -> Void in
                 predictions[index]=bestPrediction
             }
-            let pointRegionOfInterest = obstacle.getObstacleRect()
-            var regionOfInterest = VNNormalizedRectForImageRect(pointRegionOfInterest, cgImage!.width, cgImage!.height)
+            var regionOfInterest = VNNormalizedRectForImageRect(obstacleRect, cgImage!.width, cgImage!.height)
             var minY = 1-regionOfInterest.minY-regionOfInterest.height
             if(minY<=0) { minY = 0 }
             var height = regionOfInterest.height
@@ -73,20 +71,12 @@ class ImagePredictor
         do
         {
             try handler.perform(requests)
-            i = 0
-            for obstacle in obstacles
-            {
-                if(predictions[i] != nil)
-                {
-                    obstacle.addNewPrediction(newPrediction: predictions[i]!)
-                }
-                i=i+1
-            }
+            return predictions
         }
         catch
         {
             print(error)
-            return
+            return predictions
         }
     }
 

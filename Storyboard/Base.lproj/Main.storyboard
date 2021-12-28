@@ -80,8 +80,6 @@
         <!--Obstacle Finder View Controller-->
         <scene sceneID="tne-QT-ifu">
             <objects>
-                <tapGestureRecognizer id="46S-rN-uTp"/>
-                <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
                 <viewController id="BYZ-38-t0r" customClass="ObstacleFinderViewController" customModule="ODView" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="dLS-A3-tLp">
                         <rect key="frame" x="0.0" y="0.0" width="375" height="647"/>
@@ -94,54 +92,23 @@
                                     <outletCollection property="gestureRecognizers" destination="46S-rN-uTp" appends="YES" id="SvT-9n-cNH"/>
                                 </connections>
                             </arscnView>
-                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="ueB-yO-pCZ" userLabel="ClusterLbl">
-                                <rect key="frame" x="10" y="606.5" width="0.0" height="0.0"/>
-                                <fontDescription key="fontDescription" type="system" pointSize="25"/>
-                                <color key="textColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-                                <nil key="highlightedColor"/>
-                            </label>
-                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="efq-WT-4Kx" userLabel="ObstacleLbl">
-                                <rect key="frame" x="10" y="606.5" width="0.0" height="0.0"/>
-                                <fontDescription key="fontDescription" type="system" pointSize="25"/>
-                                <color key="textColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-                                <nil key="highlightedColor"/>
-                            </label>
-                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="S7I-T6-emA" userLabel="AnchorLbl">
-                                <rect key="frame" x="10" y="606.5" width="0.0" height="0.0"/>
-                                <fontDescription key="fontDescription" type="system" pointSize="25"/>
-                                <color key="textColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-                                <nil key="highlightedColor"/>
-                            </label>
-                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="3Qs-Ed-r0w" userLabel="Preview VIew">
-                                <rect key="frame" x="156" y="276" width="203" height="330"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                <preferredSymbolConfiguration key="preferredSymbolConfiguration" scale="default"/>
-                            </imageView>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="5lF-OM-9Yk"/>
                         <color key="backgroundColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                         <constraints>
                             <constraint firstItem="kjD-C7-NCn" firstAttribute="leading" secondItem="5lF-OM-9Yk" secondAttribute="leading" id="0Pr-cK-gYq"/>
-                            <constraint firstItem="ueB-yO-pCZ" firstAttribute="leading" secondItem="dLS-A3-tLp" secondAttribute="leadingMargin" constant="-6" id="3T5-6s-7lW"/>
-                            <constraint firstItem="ueB-yO-pCZ" firstAttribute="top" secondItem="S7I-T6-emA" secondAttribute="bottom" id="Ym2-MB-UsE"/>
                             <constraint firstItem="5lF-OM-9Yk" firstAttribute="bottom" secondItem="kjD-C7-NCn" secondAttribute="bottom" id="eT2-uo-ua5"/>
-                            <constraint firstItem="ueB-yO-pCZ" firstAttribute="leading" secondItem="efq-WT-4Kx" secondAttribute="leading" id="ejx-z1-0Ve"/>
-                            <constraint firstAttribute="bottomMargin" secondItem="ueB-yO-pCZ" secondAttribute="bottom" constant="40.5" id="hAA-SY-tNF"/>
-                            <constraint firstItem="ueB-yO-pCZ" firstAttribute="leading" secondItem="S7I-T6-emA" secondAttribute="leading" id="hxy-HC-Kbj"/>
-                            <constraint firstItem="S7I-T6-emA" firstAttribute="top" secondItem="efq-WT-4Kx" secondAttribute="bottom" id="knt-Cd-SUS"/>
                             <constraint firstItem="5lF-OM-9Yk" firstAttribute="trailing" secondItem="kjD-C7-NCn" secondAttribute="trailing" id="nZg-j5-TpO"/>
                             <constraint firstItem="kjD-C7-NCn" firstAttribute="top" secondItem="5lF-OM-9Yk" secondAttribute="top" id="s55-4e-eEC"/>
                         </constraints>
                     </view>
                     <navigationItem key="navigationItem" id="ttg-ZB-oPx"/>
                     <connections>
-                        <outlet property="anchorLbl" destination="S7I-T6-emA" id="qbC-ZY-vjy"/>
                         <outlet property="arscnView" destination="kjD-C7-NCn" id="TYJ-1p-NX1"/>
-                        <outlet property="clusterLbl" destination="ueB-yO-pCZ" id="QEy-Ho-ERT"/>
-                        <outlet property="obstacleLbl" destination="efq-WT-4Kx" id="HPf-ke-khF"/>
-                        <outlet property="previewView" destination="3Qs-Ed-r0w" id="Yas-yJ-m6L"/>
                     </connections>
                 </viewController>
+                <tapGestureRecognizer id="46S-rN-uTp"/>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
             </objects>
             <point key="canvasLocation" x="32.799999999999997" y="4.9475262368815596"/>
         </scene>

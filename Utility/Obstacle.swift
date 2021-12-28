@@ -14,90 +14,77 @@ class Obstacle
     private var maxPointBoundingBox : CGPoint!
     private var minWorldPosition : SCNVector3!
     private var maxWorldPosition : SCNVector3!
-    private var predictions : [String : Float]!
     private var predictionFrequencies : [String : Int]!
+    private var pointNumber : Int
     
     public init()
     {
-        predictions = [:]
         minPointBoundingBox = nil
         maxPointBoundingBox = nil
         minWorldPosition = nil
         maxWorldPosition = nil
-        predictions=[:]
+        pointNumber = 0
         predictionFrequencies=[:]
     }
     
-    public init(_ obstacle : Obstacle)
+    public func copy() -> Obstacle
     {
-        predictions = obstacle.predictions
-        predictionFrequencies = obstacle.predictionFrequencies
-        minPointBoundingBox = obstacle.minPointBoundingBox
-        maxPointBoundingBox = obstacle.maxPointBoundingBox
-        minWorldPosition = obstacle.minWorldPosition
-        maxWorldPosition = obstacle.maxWorldPosition
+        let obstacle = Obstacle()
+        obstacle.predictionFrequencies = predictionFrequencies
+        obstacle.minPointBoundingBox = minPointBoundingBox
+        obstacle.maxPointBoundingBox = maxPointBoundingBox
+        obstacle.minWorldPosition = minWorldPosition
+        obstacle.maxWorldPosition = maxWorldPosition
+        obstacle.pointNumber = pointNumber
+        return obstacle
     }
     
-    public func resetBoundingBox()
+    public func getPointNumber() -> Int
     {
-        minPointBoundingBox = nil
-        maxPointBoundingBox = nil
-        minWorldPosition = nil
-        maxWorldPosition = nil
+        return pointNumber
     }
     
     public func addNewPrediction(newPrediction : Prediction)
     {
         let classification = newPrediction.classification
         let confidence = newPrediction.confidencePercentage
-        guard predictions[classification] != nil else
-        {
-            self.predictions[classification]=confidence
-            self.predictionFrequencies[classification]=1
-            return
-        }
-        if(confidence>predictions[classification]!)
-        {
-            predictions[classification]=confidence
-        }
+        
         if(confidence>Constants.MIN_PREDICTION_CONFIDENCE)
         {
-            predictionFrequencies[classification]!+=1
+            guard predictionFrequencies[classification] != nil else
+            {
+                self.predictionFrequencies[classification]=1
+                return
+            }
+            //In caso la frequenza oltrepassasse la capacità del tipo Int
+            do
+            {
+                predictionFrequencies[classification]!+=1
+            }
+            catch
+            {
+                predictionFrequencies[classification]=Int.max
+            }
         }
     }
     
-    public func getMostFrequentPrediction() -> Prediction
+    public func getMostFrequentPrediction() -> String
     {
-        var prediction : Prediction = Constants.OBSTACLE_DEFAULT_PREDICTION
+        var prediction : String = Constants.OBSTACLE_DEFAULT_PREDICTION.classification
         var max = 0
         
         for key in predictionFrequencies.keys
         {
             if(predictionFrequencies[key]!>max)
             {
-                prediction=Prediction(classification: key, confidencePercentage: Constants.OBSTACLE_DEFAULT_CONFIDENCE)
+                prediction = key
                 max=predictionFrequencies[key]!
             }
         }
         
         if(max<Constants.MIN_NUMBER_OF_PREDICTIONS)
         {
-            return Constants.OBSTACLE_DEFAULT_PREDICTION
-        }
-        return prediction
-    }
-    
-    public func getMostProbablePrediction() -> Prediction
-    {
-        var prediction : Prediction = Constants.OBSTACLE_DEFAULT_PREDICTION
-        var max : Float = prediction.confidencePercentage
-        for key in predictions.keys
-        {
-            if(max<predictions[key]!)
-            {
-                prediction=Prediction(classification: key, confidencePercentage: predictions[key]!)
-                max=predictions[key]!
-            }
+            return Constants.OBSTACLE_DEFAULT_PREDICTION.classification
         }
         return prediction
     }
@@ -151,6 +138,8 @@ class Obstacle
     
     public func updateBoundaries(frame: ARFrame, viewportSize: CGSize, worldPoint: SCNVector3)
     {
+        pointNumber=pointNumber+1
+        
         var screenPoint = frame.camera.projectPoint(worldPoint.getSimd(), orientation: .portrait, viewportSize: viewportSize)
         screenPoint = clampScreenPoint(screenPoint: screenPoint, viewportSize: viewportSize)
         
@@ -191,13 +180,6 @@ class Obstacle
         let minY = minPointBoundingBox.y
         let rect = CGRect(x: minX, y: minY, width: width, height: height)
         return rect
-    }
-    
-    public func getObstacleRectArea() -> CGFloat
-    {
-        let rect = getObstacleRect()
-        let area = rect.width * rect.height
-        return area
     }
     
     public func getWorldCornerPositions() -> [SCNVector3]
@@ -282,13 +264,32 @@ class Obstacle
         return distances.min()!
     }
     
-    static func == (lhs: Obstacle, rhs: Obstacle) -> Bool {
-        return
-            lhs.getDescription()==rhs.getDescription()
+    public func getPredictionFrequencies() -> [String: Int]
+    {
+        return predictionFrequencies
+    }
+    
+    public func setPredictionFrequencies(predictions : [String: Int])
+    {
+        predictionFrequencies=predictions
     }
     
     public func mergeWithOther(other : Obstacle)
     {
+        pointNumber=pointNumber+other.pointNumber
+        
+        for key in other.predictionFrequencies.keys
+        {
+            if(predictionFrequencies[key] == nil)
+            {
+                predictionFrequencies[key]=other.predictionFrequencies[key]
+            }
+            else
+            {
+                predictionFrequencies[key]!+=other.predictionFrequencies[key]!
+            }
+        }
+        
         if(minPointBoundingBox==nil || minWorldPosition==nil
            || maxPointBoundingBox==nil || maxWorldPosition==nil)
         {
