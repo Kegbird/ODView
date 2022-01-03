@@ -11,7 +11,7 @@
 		70228E342757D554008D01E8 /* Prediction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70228E332757D554008D01E8 /* Prediction.swift */; };
 		7024C8FE274EACB500C010F9 /* SqueezeNet.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 7024C8FD274EACB500C010F9 /* SqueezeNet.mlmodel */; };
 		702CDBB526F7778E0046972D /* ObstacleBoundingBoxView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 702CDBB426F7778E0046972D /* ObstacleBoundingBoxView.swift */; };
-		702EAB8726E8B95900287B1B /* Obstacle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 702EAB8626E8B95900287B1B /* Obstacle.swift */; };
+		702EAB8726E8B95900287B1B /* StoredObstacle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 702EAB8626E8B95900287B1B /* StoredObstacle.swift */; };
 		703137B42774BC5700BFFA8E /* ImageClassifier.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 703137B32774BC5700BFFA8E /* ImageClassifier.mlmodel */; };
 		709C57DE2722A38600A2BBEB /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 709C57DD2722A38600A2BBEB /* SceneDelegate.swift */; };
 		70AD0E99274D4A8A00580CD1 /* SetupViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70AD0E98274D4A8A00580CD1 /* SetupViewController.swift */; };
@@ -24,6 +24,7 @@
 		70ED4C6F26CFA085006173D9 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 70ED4C6D26CFA085006173D9 /* LaunchScreen.storyboard */; };
 		70ED4C7A26CFA085006173D9 /* ODViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70ED4C7926CFA085006173D9 /* ODViewTests.swift */; };
 		70ED4C8526CFA085006173D9 /* ODViewUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70ED4C8426CFA085006173D9 /* ODViewUITests.swift */; };
+		70F26828277E222B00F021A0 /* Obstacle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70F26827277E222B00F021A0 /* Obstacle.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -48,7 +49,7 @@
 		70228E332757D554008D01E8 /* Prediction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Prediction.swift; sourceTree = "<group>"; };
 		7024C8FD274EACB500C010F9 /* SqueezeNet.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = SqueezeNet.mlmodel; sourceTree = "<group>"; };
 		702CDBB426F7778E0046972D /* ObstacleBoundingBoxView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ObstacleBoundingBoxView.swift; sourceTree = "<group>"; };
-		702EAB8626E8B95900287B1B /* Obstacle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Obstacle.swift; sourceTree = "<group>"; };
+		702EAB8626E8B95900287B1B /* StoredObstacle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoredObstacle.swift; sourceTree = "<group>"; };
 		703137B32774BC5700BFFA8E /* ImageClassifier.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = ImageClassifier.mlmodel; sourceTree = "<group>"; };
 		709C57DD2722A38600A2BBEB /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		70AD0E98274D4A8A00580CD1 /* SetupViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupViewController.swift; sourceTree = "<group>"; };
@@ -67,6 +68,7 @@
 		70ED4C8026CFA085006173D9 /* ODViewUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ODViewUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		70ED4C8426CFA085006173D9 /* ODViewUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ODViewUITests.swift; sourceTree = "<group>"; };
 		70ED4C8626CFA085006173D9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		70F26827277E222B00F021A0 /* Obstacle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Obstacle.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -107,11 +109,12 @@
 			isa = PBXGroup;
 			children = (
 				700166402764B7AC00D34D17 /* ImagePredictor.swift */,
-				702EAB8626E8B95900287B1B /* Obstacle.swift */,
+				702EAB8626E8B95900287B1B /* StoredObstacle.swift */,
 				70C70CB527063E0400ADCCAE /* Extensions.swift */,
 				702CDBB426F7778E0046972D /* ObstacleBoundingBoxView.swift */,
 				70C70CB727063FEC00ADCCAE /* Constants.swift */,
 				70228E332757D554008D01E8 /* Prediction.swift */,
+				70F26827277E222B00F021A0 /* Obstacle.swift */,
 			);
 			path = Utility;
 			sourceTree = "<group>";
@@ -321,11 +324,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				702EAB8726E8B95900287B1B /* Obstacle.swift in Sources */,
+				702EAB8726E8B95900287B1B /* StoredObstacle.swift in Sources */,
 				70ED4C6726CFA083006173D9 /* ObstacleFinderViewController.swift in Sources */,
 				70ED4C6326CFA083006173D9 /* AppDelegate.swift in Sources */,
 				70C70CB627063E0400ADCCAE /* Extensions.swift in Sources */,
 				70AD0E99274D4A8A00580CD1 /* SetupViewController.swift in Sources */,
+				70F26828277E222B00F021A0 /* Obstacle.swift in Sources */,
 				700166412764B7AC00D34D17 /* ImagePredictor.swift in Sources */,
 				709C57DE2722A38600A2BBEB /* SceneDelegate.swift in Sources */,
 				703137B42774BC5700BFFA8E /* ImageClassifier.mlmodel in Sources */,

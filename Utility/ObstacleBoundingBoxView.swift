@@ -42,18 +42,11 @@ class ObstacleBoundingBoxView
         shapeLayer.frame = rect
         shapeLayer.borderColor = color.cgColor
         shapeLayer.isHidden = false
-        
         textLayer.string = label
-        textLayer.backgroundColor = color.cgColor
+        textLayer.backgroundColor=CGColor(red: 0, green: 0, blue: 1, alpha: 0.5)
         textLayer.isHidden = false
-        let attributes = [
-            NSAttributedString.Key.font: textLayer.font as Any
-        ]
-        let textRect = label.boundingRect(with: CGSize(width: 400, height: 100),
-                                          options: .usesFontLeading,
-                                          attributes: attributes, context: nil)
-        let textSize = CGSize(width: textRect.width, height: textRect.height)
-        let textOrigin = CGPoint(x: rect.origin.x - 2, y: rect.origin.y)
+        let textOrigin = CGPoint(x: rect.origin.x - 4, y: rect.origin.y)
+        let textSize = CGSize(width: 100, height: 50)
         textLayer.frame = CGRect(origin: textOrigin, size: textSize)
     }
     

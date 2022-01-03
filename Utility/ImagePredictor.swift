@@ -24,7 +24,7 @@ class ImagePredictor
 
     private static let imageClassifier = createImageClassifier()
 
-    typealias ImagePredictionHandler = (_ prediction: Prediction, _ index: Int) -> Void
+    typealias ImagePredictionHandler = (_ predictions: [Prediction], _ index: Int) -> Void
 
     private var predictionHandlers = [VNRequest: (ImagePredictionHandler, Int)]()
 
@@ -36,15 +36,14 @@ class ImagePredictor
         return imageClassificationRequest
     }
     
-    func classifyNewObstacles(cgImage: CGImage?, for obstacles : [Obstacle]) -> [Prediction]
+    func classifyNewObstacles(cgImage: CGImage?, for obstacles : inout [StoredObstacle])
     {
-        var predictions = Array.init(repeating: Constants.OBSTACLE_DEFAULT_PREDICTION, count: obstacles.count)
-        
         guard cgImage != nil else
         {
-            return predictions
+            return
         }
-        
+    
+        var predictions = Array.init(repeating: [], count: obstacles.count)
         var requests : [VNRequest] = []
         var i = 0
         for obstacle in obstacles
@@ -52,8 +51,11 @@ class ImagePredictor
             let obstacleRect = obstacle.getObstacleRect()
             let completionHandler =
             {
-            (bestPrediction : Prediction, index : Int) -> Void in
-                predictions[index]=bestPrediction
+            (_predictions : [Prediction], index : Int) -> Void in
+                for p in _predictions
+                {
+                    predictions[index].append(p)
+                }
             }
             var regionOfInterest = VNNormalizedRectForImageRect(obstacleRect, cgImage!.width, cgImage!.height)
             var minY = 1-regionOfInterest.minY-regionOfInterest.height
@@ -71,12 +73,19 @@ class ImagePredictor
         do
         {
             try handler.perform(requests)
-            return predictions
+            i=0
+            for obstaclePredictions in predictions
+            {
+                for prediction in obstaclePredictions
+                {
+                    obstacles[i].addNewPrediction(newPrediction: prediction as! Prediction)
+                }
+                i=i+1
+            }
         }
         catch
         {
-            print(error)
-            return predictions
+            return
         }
     }
 
@@ -113,14 +122,9 @@ class ImagePredictor
                        confidencePercentage: observation.confidence)
         }
         
-        predictions = predictions?.sorted
-        {
-            $0.confidencePercentage>$1.confidencePercentage
-        }
-        
         if(predictions != nil && predictions!.count>0)
         {
-            predictionHandler(predictions!.first!, index)
+            predictionHandler(predictions!, index)
         }
     }
 }

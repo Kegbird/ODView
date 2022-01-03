@@ -1,21 +1,13 @@
-//
-//  Obstacle.swift
-//  ODView
-//
-//  Created by Pietro Prebianca on 08/09/21.
-//
-
 import Foundation
 import ARKit
 
 class Obstacle
 {
-    private var minPointBoundingBox : CGPoint!
-    private var maxPointBoundingBox : CGPoint!
-    private var minWorldPosition : SCNVector3!
-    private var maxWorldPosition : SCNVector3!
-    private var predictionFrequencies : [String : Int]!
-    private var pointNumber : Int
+    internal var minPointBoundingBox : CGPoint!
+    internal var maxPointBoundingBox : CGPoint!
+    internal var minWorldPosition : SCNVector3!
+    internal var maxWorldPosition : SCNVector3!
+    internal var pointNumber : Int
     
     public init()
     {
@@ -24,13 +16,11 @@ class Obstacle
         minWorldPosition = nil
         maxWorldPosition = nil
         pointNumber = 0
-        predictionFrequencies=[:]
     }
     
     public func copy() -> Obstacle
     {
         let obstacle = Obstacle()
-        obstacle.predictionFrequencies = predictionFrequencies
         obstacle.minPointBoundingBox = minPointBoundingBox
         obstacle.maxPointBoundingBox = maxPointBoundingBox
         obstacle.minWorldPosition = minWorldPosition
@@ -42,51 +32,6 @@ class Obstacle
     public func getPointNumber() -> Int
     {
         return pointNumber
-    }
-    
-    public func addNewPrediction(newPrediction : Prediction)
-    {
-        let classification = newPrediction.classification
-        let confidence = newPrediction.confidencePercentage
-        
-        if(confidence>Constants.MIN_PREDICTION_CONFIDENCE)
-        {
-            guard predictionFrequencies[classification] != nil else
-            {
-                self.predictionFrequencies[classification]=1
-                return
-            }
-            //In caso la frequenza oltrepassasse la capacità del tipo Int
-            do
-            {
-                predictionFrequencies[classification]!+=1
-            }
-            catch
-            {
-                predictionFrequencies[classification]=Int.max
-            }
-        }
-    }
-    
-    public func getMostFrequentPrediction() -> String
-    {
-        var prediction : String = Constants.OBSTACLE_DEFAULT_PREDICTION.classification
-        var max = 0
-        
-        for key in predictionFrequencies.keys
-        {
-            if(predictionFrequencies[key]!>max)
-            {
-                prediction = key
-                max=predictionFrequencies[key]!
-            }
-        }
-        
-        if(max<Constants.MIN_NUMBER_OF_PREDICTIONS)
-        {
-            return Constants.OBSTACLE_DEFAULT_PREDICTION.classification
-        }
-        return prediction
     }
     
     public func getMinPointBoundingBox() -> CGPoint
@@ -264,31 +209,9 @@ class Obstacle
         return distances.min()!
     }
     
-    public func getPredictionFrequencies() -> [String: Int]
-    {
-        return predictionFrequencies
-    }
-    
-    public func setPredictionFrequencies(predictions : [String: Int])
-    {
-        predictionFrequencies=predictions
-    }
-    
     public func mergeWithOther(other : Obstacle)
     {
         pointNumber=pointNumber+other.pointNumber
-        
-        for key in other.predictionFrequencies.keys
-        {
-            if(predictionFrequencies[key] == nil)
-            {
-                predictionFrequencies[key]=other.predictionFrequencies[key]
-            }
-            else
-            {
-                predictionFrequencies[key]!+=other.predictionFrequencies[key]!
-            }
-        }
         
         if(minPointBoundingBox==nil || minWorldPosition==nil
            || maxPointBoundingBox==nil || maxWorldPosition==nil)

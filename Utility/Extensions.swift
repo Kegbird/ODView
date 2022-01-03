@@ -149,6 +149,12 @@ extension ARMeshGeometry
     }
 }
 
+extension String {
+    func size(OfFont font: UIFont) -> CGSize {
+        return (self as NSString).size(withAttributes: [NSAttributedString.Key.font: font])
+    }
+}
+
 extension  SCNGeometrySource {
     convenience init(_ source: ARGeometrySource, semantic: Semantic) {
         self.init(buffer: source.buffer, vertexFormat: source.format, semantic: semantic, vertexCount: source.count, dataOffset: source.offset, dataStride: source.stride)
