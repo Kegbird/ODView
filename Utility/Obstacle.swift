@@ -127,6 +127,12 @@ class Obstacle
         return rect
     }
     
+    public func getObstacleRectArea() -> CGFloat
+    {
+        let obstacleRect = getObstacleRect()
+        return obstacleRect.width*obstacleRect.height
+    }
+    
     public func getWorldCornerPositions() -> [SCNVector3]
     {
         if(minPointBoundingBox==nil || minWorldPosition==nil

@@ -118,8 +118,8 @@ class ImagePredictor
         predictions = observations.map
         {
             observation in
-            Prediction(classification: observation.identifier,
-                       confidencePercentage: observation.confidence)
+            Prediction(label: observation.identifier,
+                       confidence: observation.confidence)
         }
         
         if(predictions != nil && predictions!.count>0)

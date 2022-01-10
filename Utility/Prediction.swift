@@ -1,10 +1,10 @@
 struct Prediction {
-    let classification: String
-    let confidencePercentage: Float
+    var label: String
+    var confidence: Float
     
     func getDescriptionString() -> String
     {
-        return String(format: "%@: %.2f", classification, confidencePercentage*100.0)
+        return String(format: "%@: %.2f", label, confidence*100.0)
     }
 }
 

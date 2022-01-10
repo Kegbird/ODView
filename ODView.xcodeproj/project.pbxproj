@@ -9,10 +9,10 @@
 /* Begin PBXBuildFile section */
 		700166412764B7AC00D34D17 /* ImagePredictor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 700166402764B7AC00D34D17 /* ImagePredictor.swift */; };
 		70228E342757D554008D01E8 /* Prediction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70228E332757D554008D01E8 /* Prediction.swift */; };
-		7024C8FE274EACB500C010F9 /* SqueezeNet.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 7024C8FD274EACB500C010F9 /* SqueezeNet.mlmodel */; };
 		702CDBB526F7778E0046972D /* ObstacleBoundingBoxView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 702CDBB426F7778E0046972D /* ObstacleBoundingBoxView.swift */; };
 		702EAB8726E8B95900287B1B /* StoredObstacle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 702EAB8626E8B95900287B1B /* StoredObstacle.swift */; };
-		703137B42774BC5700BFFA8E /* ImageClassifier.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 703137B32774BC5700BFFA8E /* ImageClassifier.mlmodel */; };
+		703DDE7F2785D8D0000EB7DA /* ImageClassifier.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 703DDE7E2785D8D0000EB7DA /* ImageClassifier.mlmodel */; };
+		703DDE812785DD15000EB7DA /* YOLOv3.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 703DDE802785DD15000EB7DA /* YOLOv3.mlmodel */; };
 		709C57DE2722A38600A2BBEB /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 709C57DD2722A38600A2BBEB /* SceneDelegate.swift */; };
 		70AD0E99274D4A8A00580CD1 /* SetupViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70AD0E98274D4A8A00580CD1 /* SetupViewController.swift */; };
 		70C70CB627063E0400ADCCAE /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70C70CB527063E0400ADCCAE /* Extensions.swift */; };
@@ -47,10 +47,10 @@
 /* Begin PBXFileReference section */
 		700166402764B7AC00D34D17 /* ImagePredictor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImagePredictor.swift; sourceTree = "<group>"; };
 		70228E332757D554008D01E8 /* Prediction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Prediction.swift; sourceTree = "<group>"; };
-		7024C8FD274EACB500C010F9 /* SqueezeNet.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = SqueezeNet.mlmodel; sourceTree = "<group>"; };
 		702CDBB426F7778E0046972D /* ObstacleBoundingBoxView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ObstacleBoundingBoxView.swift; sourceTree = "<group>"; };
 		702EAB8626E8B95900287B1B /* StoredObstacle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoredObstacle.swift; sourceTree = "<group>"; };
-		703137B32774BC5700BFFA8E /* ImageClassifier.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = ImageClassifier.mlmodel; sourceTree = "<group>"; };
+		703DDE7E2785D8D0000EB7DA /* ImageClassifier.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = ImageClassifier.mlmodel; sourceTree = "<group>"; };
+		703DDE802785DD15000EB7DA /* YOLOv3.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = YOLOv3.mlmodel; sourceTree = "<group>"; };
 		709C57DD2722A38600A2BBEB /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		70AD0E98274D4A8A00580CD1 /* SetupViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupViewController.swift; sourceTree = "<group>"; };
 		70C70CB527063E0400ADCCAE /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
@@ -96,13 +96,13 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		7024C8FC274EAB8500C010F9 /* Model */ = {
+		703DDE7D2785D82D000EB7DA /* Models */ = {
 			isa = PBXGroup;
 			children = (
-				703137B32774BC5700BFFA8E /* ImageClassifier.mlmodel */,
-				7024C8FD274EACB500C010F9 /* SqueezeNet.mlmodel */,
+				703DDE7E2785D8D0000EB7DA /* ImageClassifier.mlmodel */,
+				703DDE802785DD15000EB7DA /* YOLOv3.mlmodel */,
 			);
-			path = Model;
+			path = Models;
 			sourceTree = "<group>";
 		};
 		70A72EC12726F53400217481 /* Utility */ = {
@@ -140,7 +140,7 @@
 		70ED4C5626CFA083006173D9 = {
 			isa = PBXGroup;
 			children = (
-				7024C8FC274EAB8500C010F9 /* Model */,
+				703DDE7D2785D82D000EB7DA /* Models */,
 				70AD0E9B274D4F0400580CD1 /* Storyboard */,
 				70AD0E9A274D4EE700580CD1 /* ViewController */,
 				70A72EC12726F53400217481 /* Utility */,
@@ -325,17 +325,17 @@
 			buildActionMask = 2147483647;
 			files = (
 				702EAB8726E8B95900287B1B /* StoredObstacle.swift in Sources */,
+				703DDE812785DD15000EB7DA /* YOLOv3.mlmodel in Sources */,
 				70ED4C6726CFA083006173D9 /* ObstacleFinderViewController.swift in Sources */,
 				70ED4C6326CFA083006173D9 /* AppDelegate.swift in Sources */,
 				70C70CB627063E0400ADCCAE /* Extensions.swift in Sources */,
 				70AD0E99274D4A8A00580CD1 /* SetupViewController.swift in Sources */,
 				70F26828277E222B00F021A0 /* Obstacle.swift in Sources */,
 				700166412764B7AC00D34D17 /* ImagePredictor.swift in Sources */,
+				703DDE7F2785D8D0000EB7DA /* ImageClassifier.mlmodel in Sources */,
 				709C57DE2722A38600A2BBEB /* SceneDelegate.swift in Sources */,
-				703137B42774BC5700BFFA8E /* ImageClassifier.mlmodel in Sources */,
 				702CDBB526F7778E0046972D /* ObstacleBoundingBoxView.swift in Sources */,
 				70228E342757D554008D01E8 /* Prediction.swift in Sources */,
-				7024C8FE274EACB500C010F9 /* SqueezeNet.mlmodel in Sources */,
 				70C70CB827063FEC00ADCCAE /* Constants.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

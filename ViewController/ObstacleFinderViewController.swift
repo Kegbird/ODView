@@ -14,6 +14,7 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
     private var walls : [UUID:SCNNode]!
     //Lista delle bounding box view per gli ostacoli.
     private var boundingBoxes : [ObstacleBoundingBoxView]!
+    private var tmp : [ObstacleBoundingBoxView]!
     //Queue dei thread che piazzano piani terreno e muro.
     private var planeQueue : DispatchQueue!
     //Queue dei thread che trovano gli ostacoli per le varie ancore.
@@ -38,54 +39,22 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
     private var chestHeight : Float!
     //Variabile che blocca la classificazione degli ostacoli.
     private var classification : Bool!
+    private var predictedBoundingBoxes : [(CGRect, Prediction)]!
+    
     //Wrapper usato per interrogare il classificatore immagini.
     private var imagePredictor : ImagePredictor!
-    private var begin : DispatchTime?
-    private var end : DispatchTime?
-    private var fileName : String = ""
-    //Facce e performance: Facce totali, Totale tempo
-    private var performances : [(Int, Int, Int)]!
-    
-    public func createFileName()
-    {
-        let date = Date()
-        let calendar = Calendar.current
-        let hour = calendar.component(.hour, from: date)
-        let minutes = calendar.component(.minute, from: date)
-        fileName = String(format: "Data-%d:%d", hour, minutes)
-    }
-    
-    public func saveFile()
-    {
-        let documentDirectoryUrl = try! FileManager.default.url(
-            for: .documentDirectory, in: .allDomainsMask, appropriateFor: nil, create: true)
-        let fileUrl = documentDirectoryUrl.appendingPathComponent(fileName).appendingPathExtension("csv")
-        
-        print(fileUrl.path)
-        var content = ""
-        content="Facce Totali; CPS"
-        for record in performances
-        {
-            content=content+"\n"+String(format: "%d;%d", record.0, record.1)
-        }
-        do {
-            try content.write(to: fileUrl, atomically: true, encoding: String.Encoding.utf8)
-        }
-        catch let error as NSError
-        {
-            print (error)
-        }
-    }
+    private let objectDetectionModel = YOLOv3()
+    private var objecteDectionModelWrapper: VNCoreMLModel!
+    private var objectDetectionRequest : VNCoreMLRequest!
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        saveFile()
     }
     
     override func viewDidLoad() {
         super.viewDidLoad()
         guard #available(iOS 14.0, *) else { return }
         
-        createFileName()
+        setupVision()
         
         setupViewVariables()
         
@@ -94,12 +63,35 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
         setupBoundingBoxes()
     }
     
+    func setupVision()
+    {
+        objecteDectionModelWrapper = {
+           do {
+               return try VNCoreMLModel(for: objectDetectionModel.model)
+           } catch {
+               fatalError("Failed to create VNCoreMLModel: \(error)")
+           }
+       }()
+        
+        objectDetectionRequest =
+        {
+            let request = VNCoreMLRequest(model: objecteDectionModelWrapper, completionHandler: {
+                [weak self] request, error in
+                guard let frame = self!.arscnView.session.currentFrame else { return }
+                if let results = request.results
+                {
+                    self!.drawVisionRequestResults(request, frame: frame)
+                }
+            })
+            request.imageCropAndScaleOption = .scaleFill
+            return request
+        }()
+    }
+    
     func setupViewVariables()
     {
-        performances=[]
+        predictedBoundingBoxes=[]
         loadPerAnchor=[:]
-        begin=DispatchTime.now()
-        end=DispatchTime.now()
         UIApplication.shared.isIdleTimerDisabled = true
         processingPerAnchor=[:]
         floors=[:]
@@ -122,11 +114,11 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
         arscnView.isOpaque=true
         arscnView.frame=self.view.frame
         arscnView.showsStatistics=true
-        //arscnView.preferredFramesPerSecond = Constants.PREFERRED_FPS
+        arscnView.preferredFramesPerSecond = Constants.PREFERRED_FPS
         let configuration = ARWorldTrackingConfiguration()
         configuration.worldAlignment = .gravity
         configuration.planeDetection = [.horizontal, .vertical]
-        configuration.sceneReconstruction = .mesh
+        configuration.sceneReconstruction = .meshWithClassification
         arscnView.debugOptions.insert(.showBoundingBoxes)
         arscnView.session.run(configuration)
     }
@@ -134,11 +126,15 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
     func setupBoundingBoxes()
     {
         boundingBoxes = []
+        tmp = []
         for _ in 0..<Constants.MAX_OBSTACLE_NUMBER
         {
             let boundingBox = ObstacleBoundingBoxView()
             boundingBox.addToLayer(arscnView.layer)
             boundingBoxes.append(boundingBox)
+            let a = ObstacleBoundingBoxView()
+            a.addToLayer(arscnView.layer)
+            tmp.append(a)
         }
     }
     
@@ -244,6 +240,7 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
                 {
                     return
                 }
+                
                 planeNode!.geometry?.firstMaterial?.diffuse.contents=UIColor(cgColor: CGColor(red: 0, green: 1, blue: 1, alpha: 0.7))
                 self!.floors[planeAnchor.identifier]=planeNode
             }
@@ -296,6 +293,26 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
         return classification == .none || classification == .seat || classification == .table
     }
     
+    func projectPointOverWall(point : SCNVector3, planeNormal : SCNVector3, planeWorldPosition : SCNVector3, minPlaneWorldPosition : SCNVector3, maxPlaneWorldPosition : SCNVector3) -> Bool
+    {
+        let pointPlaneVector = SCNVector3(point.getSimd()-planeWorldPosition.getSimd())
+        let dot = Float(pointPlaneVector.dotProduct(planeNormal))
+        let distanceVector = SCNVector3(x: planeNormal.x*dot,
+                                        y: planeNormal.y*dot,
+                                        z: planeNormal.z*dot)
+        let projectedPoint = SCNVector3(point.getSimd()-distanceVector.getSimd())
+        if(minPlaneWorldPosition.x<=projectedPoint.x &&
+            projectedPoint.x<=maxPlaneWorldPosition.x &&
+            minPlaneWorldPosition.y<=projectedPoint.y &&
+            projectedPoint.y<=maxPlaneWorldPosition.y &&
+            minPlaneWorldPosition.z<=projectedPoint.z &&
+            projectedPoint.z<=maxPlaneWorldPosition.z)
+        {
+            return true
+        }
+        return false
+    }
+    
     func clamp(value : CGFloat, min : CGFloat, max : CGFloat) -> CGFloat
     {
         if(value<min || value>max)
@@ -327,7 +344,7 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
             y: frame.camera.transform.columns.3.y,
             z: frame.camera.transform.columns.3.z)
         
-        var walls : [(SCNVector3, SCNVector3, CGPoint, CGPoint)] = []
+        var walls : [(SCNVector3, SCNVector3, SCNVector3, SCNVector3)] = []
         var floors : [(SCNVector3, SCNVector3)] = []
         
         guard let pointOfView = renderer.pointOfView else { return }
@@ -350,15 +367,9 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
                     var normal = SCNVector3(wall.simdConvertVector(simd_float3(x: 0, y: 0, z: 1), to: nil))
                     normal = normal.normalize()
                     let wallWorldPosition = wall.worldPosition
-                    let maxWallPoint = wall.convertPosition(wall.boundingBox.max, to: nil)
-                    let minWallPoint = wall.convertPosition(wall.boundingBox.min, to: nil)
-                    var maxWallScreenPoint = frame.camera.projectPoint(maxWallPoint.getSimd(), orientation: .portrait, viewportSize: self!.viewport.size)
-                    var minWallScreenPoint = frame.camera.projectPoint(minWallPoint.getSimd(), orientation: .portrait, viewportSize: self!.viewport.size)
-                    maxWallScreenPoint.x = clamp(value: maxWallScreenPoint.x, min: 0, max: self!.viewport.width)
-                    maxWallScreenPoint.y = clamp(value: maxWallScreenPoint.y, min: 0, max: self!.viewport.height)
-                    minWallScreenPoint.x = clamp(value: minWallScreenPoint.x, min: 0, max: self!.viewport.width)
-                    minWallScreenPoint.y = clamp(value: minWallScreenPoint.y, min: 0, max: self!.viewport.height)
-                    walls.append((wallWorldPosition, normal, maxWallScreenPoint, minWallScreenPoint))
+                    let maxWallWorldPoint = wall.convertPosition(wall.boundingBox.max, to: nil)
+                    let minWallWorldPoint = wall.convertPosition(wall.boundingBox.min, to: nil)
+                    walls.append((wallWorldPosition, normal, minWallWorldPoint, maxWallWorldPoint))
                 }
             }
             
@@ -394,9 +405,7 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
             let floorLevel = cameraWorldPosition.y-self!.chestHeight
             
             var indicesAdded : [UInt32: Int32] = [:]
-            
-            self!.loadPerAnchor[anchor.identifier]=meshGeometry.faces.count
-            
+
             //MARK: Filtro facce
             for i in 0..<meshGeometry.faces.count
             {
@@ -412,7 +421,7 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
                 
                 //Rimuovo le facce la cui classificazione non ci interessa (muri, pavimento)
                 let classification=meshAnchor.geometry.classificationOf(faceWithIndex: i)
-                                
+                
                 if(!self!.considerTriangle(classification))
                 {
                     continue
@@ -423,15 +432,13 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
                 //i muri
                 for wall in walls
                 {
-                    let wallMaxScreenPoint = wall.2
-                    let wallMinScreenPoint = wall.3
-                    let origin = CGPoint(x: wallMinScreenPoint.x, y: wallMaxScreenPoint.y)
-                    let size = CGSize(width: abs(wallMaxScreenPoint.x-wallMinScreenPoint.x), height: abs(wallMinScreenPoint.y-wallMaxScreenPoint.y))
-                    let normal = wall.1.getSimd()
-                    let relativePosition = triangleWorldPosition.getSimd()-wall.0.getSimd()
-                    let distance = simd_dot(normal, relativePosition)
-                    let wallRect = CGRect(origin: origin, size: size)
-                    if(abs(distance)<Constants.PLANE_DISTANCE_THRESHOLD || (distance<0 && wallRect.contains(triangleScreenPoint)))
+                    let wallWorldPosition = wall.0
+                    let normal = wall.1
+                    let relativePosition = triangleWorldPosition.getSimd()-wallWorldPosition.getSimd()
+                    let minPlaneWorldPosition = wall.2
+                    let maxPlaneWorldPosition = wall.3
+                    let distance = simd_dot(normal.getSimd(), relativePosition)
+                    if((abs(distance)<Constants.PLANE_DISTANCE_THRESHOLD) || distance<0 && self!.projectPointOverWall(point: triangleWorldPosition, planeNormal: normal, planeWorldPosition: wallWorldPosition, minPlaneWorldPosition: minPlaneWorldPosition, maxPlaneWorldPosition: maxPlaneWorldPosition))
                     {
                         shouldContinue=true
                         break
@@ -658,6 +665,29 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
         }
     }
     
+    func drawVisionRequestResults(_ request: VNRequest, frame: ARFrame)
+    {
+        guard let predictions = request.results as? [VNRecognizedObjectObservation] else { return }
+        
+        for i in 0..<predictions.count
+        {
+            let label=predictions[i].labels[0].identifier
+            let confidence=predictions[i].labels[0].confidence*100.0
+            let boundingBox = predictions[i].boundingBox
+            let prediction = Prediction(label: label, confidence: confidence)
+            if(confidence>Constants.MIN_PREDICTION_CONFIDENCE)
+            {
+                let width = viewport.width
+                let height = width * 16 / 9
+                let offsetY = (viewport.height - height) / 2
+                let scale = CGAffineTransform.identity.scaledBy(x: width, y: height)
+                let transform = CGAffineTransform(scaleX: 1, y: -1).translatedBy(x: 0, y: -height-offsetY)
+                let adjustedBoundingBox = boundingBox.applying(scale).applying(transform)
+                predictedBoundingBoxes.append((adjustedBoundingBox, prediction))
+            }
+        }
+    }
+    
     func renderer(_ renderer: SCNSceneRenderer, didUpdate node: SCNNode, for anchor: ARAnchor)
     {
         if((anchor as? ARPlaneAnchor) != nil)
@@ -712,7 +742,6 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
             //MARK: Rimuovo gli ostacoli che sono definiti da pochi punti
             self!.filterObstaclesWithFewPoints(newObstacles: &newObstacles)
             
-            let frameCgImage = self!.adaptFrame(frame: frame)
             //MARK: Confronto gli ostacoli generati prima con quelli nuovi.
             /*
              Gli ostacoli marked sono gli ostacoli che erano presenti nell'
@@ -763,13 +792,96 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
             {
                 self!.knownObstacles.append(newObstacles[i] as! StoredObstacle)
             }
+            
+            let pixelBuffer = frame.capturedImage
+            let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: .right, options: [:])
+            self!.predictedBoundingBoxes.removeAll()
+            do
+            {
+                try handler.perform([self!.objectDetectionRequest])
+            }
+            catch
+            {
+                print(error)
+            }
+            
+            //MARK: Rimuovo le bounding box troppo piccole
+            self!.predictedBoundingBoxes = self!.predictedBoundingBoxes.filter
+            { (boundingBox, _) in
+                boundingBox.width>=Constants.MIN_BOUNDING_BOX_SIDE ||
+                    boundingBox.height>=Constants.MIN_BOUNDING_BOX_SIDE
+            }
+            
             //MARK: Classificazione degli ostacoli
-            self!.imagePredictor.classifyNewObstacles(cgImage: frameCgImage, for: &self!.knownObstacles)
+            for obstacle in self!.knownObstacles
+            {
+                for predictedBoundingBox in self!.predictedBoundingBoxes
+                {
+                    let obstacleRect = obstacle.getObstacleRect()
+                    let boundingBox = predictedBoundingBox.0
+                    var prediction = predictedBoundingBox.1
+                    
+                    //Se c'è intersezione, allora forse la boundingbox
+                    //descrive l'oggetto ritrovato dal lidar.
+                    if(obstacleRect.intersects(boundingBox))
+                    {
+                        let originX = obstacleRect.origin.x>boundingBox.origin.x ? obstacleRect.origin.x : boundingBox.origin.x
+                        
+                        let originY = obstacleRect.origin.y>boundingBox.origin.y ? obstacleRect.origin.y : boundingBox.origin.y
+                
+                        let maxX = obstacleRect.maxX>boundingBox.maxX ?
+                            boundingBox.maxX : obstacleRect.maxX
+                        
+                        let maxY = obstacleRect.maxY>boundingBox.maxY ?
+                            boundingBox.maxY : obstacleRect.maxY
+                        
+                        let intersectionWidth = maxX - originX
+                        let intersectionHeight = maxY - originY
+                        
+                        let intersectionArea = intersectionWidth*intersectionHeight
+                        
+                        let obstacleArea = obstacle.getObstacleRectArea()
+                        let boundingBoxArea = boundingBox.width*boundingBox.height
+                        var totalArea : CGFloat = 0
+                        if(obstacleRect.contains(boundingBox))
+                        {
+                            totalArea=obstacleArea
+                        }
+                        else if(boundingBox.contains(obstacleRect))
+                        {
+                            totalArea=boundingBoxArea
+                        }
+                        else
+                        {
+                            totalArea=obstacleArea+boundingBoxArea-intersectionArea
+                        }
+                        
+                        let ratio = intersectionArea/totalArea
+                        if(ratio>=Constants.OVERLAP_THRESHOLD)
+                        {
+                            prediction.confidence=prediction.confidence*Float(ratio)
+                            obstacle.addNewPrediction(newPrediction: prediction)
+                        }
+                    }
+                }
+            }
             
             //MARK: Visualizzo le bounding box
             DispatchQueue.main.async
             { [weak self] in
-                var i = 0
+                var i=0
+                for predictedBoundingBox in self!.predictedBoundingBoxes
+                {
+                    self!.tmp[i].show(rect: predictedBoundingBox.0, label: predictedBoundingBox.1.label, color: UIColor.green)
+                    i=i+1
+                }
+                
+                for i in stride(from: self!.predictedBoundingBoxes.count, through: Constants.MAX_OBSTACLE_NUMBER-1, by: 1)
+                {
+                    self!.tmp[i].hide()
+                }
+                
+                i=0
                 for obstacle in self!.knownObstacles
                 {
                     let label = obstacle.getMostFrequentPrediction()
@@ -789,8 +901,8 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
                 {
                     self!.boundingBoxes[i].hide()
                 }
-                self!.classification=false
             }
+            self!.classification=false
         }
     }
 }

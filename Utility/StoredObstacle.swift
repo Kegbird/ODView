@@ -37,11 +37,9 @@ class StoredObstacle : Obstacle
     
     public func getMostFrequentPrediction() -> String
     {
-        let obstacleRect = getObstacleRect()
-        
-        if(predictionsTimeline.count==0 || (obstacleRect.width<=Constants.MIN_BOUNDING_BOX_SIDE && obstacleRect.height<=Constants.MIN_BOUNDING_BOX_SIDE))
+        if(predictionsTimeline.count==0)
         {
-            return Constants.OBSTACLE_DEFAULT_PREDICTION.classification
+            return Constants.OBSTACLE_DEFAULT_PREDICTION.label
         }
         
         var oldestPrediction = predictionsTimeline[0].1
@@ -51,23 +49,23 @@ class StoredObstacle : Obstacle
         
         for i in stride(from: predictionsTimeline.count-1, to: 0, by: -1)
         {
-            let prediction = predictionsTimeline[i].0.classification
+            let prediction = predictionsTimeline[i].0.label
             let predictionTime = predictionsTimeline[i].1
             if(predictionTime<oldestPrediction)
             {
                 oldestPrediction=predictionTime
             }
             let interval = currentTime-predictionTime
-            let predictionConfidence = predictionsTimeline[i].0.confidencePercentage*100.0
+            let confidence = predictionsTimeline[i].0.confidence*100.0
             if(interval<Constants.PREDICTION_WINDOWS)
             {
                 if(weights[prediction] != nil)
                 {
-                    weights[prediction]=weights[prediction]!+predictionConfidence
+                    weights[prediction]=weights[prediction]!+confidence
                 }
                 else
                 {
-                    weights[prediction]=predictionConfidence
+                    weights[prediction]=confidence
                 }
             }
             else
@@ -78,11 +76,11 @@ class StoredObstacle : Obstacle
         
         if(currentTime-oldestPrediction<Constants.PREDICTION_WINDOWS)
         {
-            return Constants.OBSTACLE_DEFAULT_PREDICTION.classification
+            return Constants.OBSTACLE_DEFAULT_PREDICTION.label
         }
         
         var debugOutput = ""
-        var bestPrediction = Constants.OBSTACLE_DEFAULT_PREDICTION.classification
+        var bestPrediction = Constants.OBSTACLE_DEFAULT_PREDICTION.label
         var max : Float = 0.0
         var maxDifference : Float = 0.0
         
@@ -112,7 +110,7 @@ class StoredObstacle : Obstacle
         {
             return bestPrediction
         }
-        return Constants.OBSTACLE_DEFAULT_PREDICTION.classification
+        return Constants.OBSTACLE_DEFAULT_PREDICTION.label
     }
     
     public func getPredictionsTimeline() -> [(Prediction, Double)]
