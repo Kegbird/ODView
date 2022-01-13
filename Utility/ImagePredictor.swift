@@ -38,7 +38,7 @@ class ImagePredictor
     
     func classifyNewObstacles(cgImage: CGImage?, for obstacles : inout [StoredObstacle])
     {
-        guard cgImage != nil else
+        /*guard cgImage != nil else
         {
             return
         }
@@ -86,7 +86,7 @@ class ImagePredictor
         catch
         {
             return
-        }
+        }*/
     }
 
     private func visionRequestHandler(_ request: VNRequest, error: Error?)

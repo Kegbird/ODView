@@ -10,7 +10,8 @@ import ARKit
 
 class StoredObstacle : Obstacle
 {
-    private var predictionsTimeline : [(Prediction, Double)]
+    //Lista delle predizioni memorizzate per ogni ostacolo (label, peso, timestamp)
+    private var predictionsTimeline : [(String, Float, Double)]
     
     public override init()
     {
@@ -29,10 +30,10 @@ class StoredObstacle : Obstacle
         return obstacle
     }
     
-    public func addNewPrediction(newPrediction : Prediction)
+    public func addNewPrediction(label : String, weight : Float)
     {
         let currentTime = Double(DispatchTime.now().uptimeNanoseconds) / 1000000000.0
-        predictionsTimeline.append((newPrediction, currentTime))
+        predictionsTimeline.append((label, weight, currentTime))
     }
     
     public func getMostFrequentPrediction() -> String
@@ -42,30 +43,32 @@ class StoredObstacle : Obstacle
             return Constants.OBSTACLE_DEFAULT_PREDICTION.label
         }
         
-        var oldestPrediction = predictionsTimeline[0].1
+        var oldestPrediction = predictionsTimeline[0].2
         let currentTime = Double(DispatchTime.now().uptimeNanoseconds) / 1000000000.0
         
         var weights : [String : Float] = [:]
         
         for i in stride(from: predictionsTimeline.count-1, to: 0, by: -1)
         {
-            let prediction = predictionsTimeline[i].0.label
-            let predictionTime = predictionsTimeline[i].1
+            let label = predictionsTimeline[i].0
+            let weight = predictionsTimeline[i].1
+            let predictionTime = predictionsTimeline[i].2
+            
             if(predictionTime<oldestPrediction)
             {
                 oldestPrediction=predictionTime
             }
             let interval = currentTime-predictionTime
-            let confidence = predictionsTimeline[i].0.confidence*100.0
+            
             if(interval<Constants.PREDICTION_WINDOWS)
             {
-                if(weights[prediction] != nil)
+                if(weights[label] != nil)
                 {
-                    weights[prediction]=weights[prediction]!+confidence
+                    weights[label]=weights[label]!+weight
                 }
                 else
                 {
-                    weights[prediction]=confidence
+                    weights[label]=weight
                 }
             }
             else
@@ -113,12 +116,12 @@ class StoredObstacle : Obstacle
         return Constants.OBSTACLE_DEFAULT_PREDICTION.label
     }
     
-    public func getPredictionsTimeline() -> [(Prediction, Double)]
+    public func getPredictionsTimeline() -> [(String, Float, Double)]
     {
         return predictionsTimeline
     }
     
-    public func setPredictionTimeline(predictionsTimeline : [(Prediction, Double)])
+    public func setPredictionTimeline(predictionsTimeline : [(String, Float, Double)])
     {
         self.predictionsTimeline=predictionsTimeline
     }

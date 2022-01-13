@@ -13,8 +13,8 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
     //Dictionary che mappa le ancore con i nodi muro.
     private var walls : [UUID:SCNNode]!
     //Lista delle bounding box view per gli ostacoli.
-    private var boundingBoxes : [ObstacleBoundingBoxView]!
-    private var tmp : [ObstacleBoundingBoxView]!
+    private var lidarBoundingBoxes : [ObstacleBoundingBoxView]!
+    private var visionBoundingBoxes : [ObstacleBoundingBoxView]!
     //Queue dei thread che piazzano piani terreno e muro.
     private var planeQueue : DispatchQueue!
     //Queue dei thread che trovano gli ostacoli per le varie ancore.
@@ -43,7 +43,7 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
     
     //Wrapper usato per interrogare il classificatore immagini.
     private var imagePredictor : ImagePredictor!
-    private let objectDetectionModel = YOLOv3()
+    private var objectDetectionModel : yolov5s!
     private var objecteDectionModelWrapper: VNCoreMLModel!
     private var objectDetectionRequest : VNCoreMLRequest!
     
@@ -65,27 +65,34 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
     
     func setupVision()
     {
+        let configuration = MLModelConfiguration()
+        
+        do {
+            try objectDetectionModel = yolov5s(configuration: configuration)
+        } catch {
+            fatalError("Failed to load YOLO5n model: \(error)")
+        }
         objecteDectionModelWrapper = {
-           do {
-               return try VNCoreMLModel(for: objectDetectionModel.model)
-           } catch {
-               fatalError("Failed to create VNCoreMLModel: \(error)")
-           }
-       }()
+            do {
+                return try VNCoreMLModel(for: objectDetectionModel.model)
+            } catch {
+                fatalError("Failed to create VNCoreMLModel: \(error)")
+            }
+        }()
         
         objectDetectionRequest =
-        {
-            let request = VNCoreMLRequest(model: objecteDectionModelWrapper, completionHandler: {
-                [weak self] request, error in
-                guard let frame = self!.arscnView.session.currentFrame else { return }
-                if let results = request.results
-                {
-                    self!.drawVisionRequestResults(request, frame: frame)
-                }
-            })
-            request.imageCropAndScaleOption = .scaleFill
-            return request
-        }()
+            {
+                let request = VNCoreMLRequest(model: objecteDectionModelWrapper, completionHandler: {
+                    [weak self] request, error in
+                    guard let frame = self!.arscnView.session.currentFrame else { return }
+                    if let results = request.results
+                    {
+                        self!.generateVisionBoundingBox(request, frame: frame)
+                    }
+                })
+                request.imageCropAndScaleOption = .scaleFill
+                return request
+            }()
     }
     
     func setupViewVariables()
@@ -125,16 +132,16 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
     
     func setupBoundingBoxes()
     {
-        boundingBoxes = []
-        tmp = []
+        lidarBoundingBoxes = []
+        visionBoundingBoxes = []
         for _ in 0..<Constants.MAX_OBSTACLE_NUMBER
         {
             let boundingBox = ObstacleBoundingBoxView()
             boundingBox.addToLayer(arscnView.layer)
-            boundingBoxes.append(boundingBox)
+            lidarBoundingBoxes.append(boundingBox)
             let a = ObstacleBoundingBoxView()
             a.addToLayer(arscnView.layer)
-            tmp.append(a)
+            visionBoundingBoxes.append(a)
         }
     }
     
@@ -264,7 +271,7 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
         }
     }
     
-    func adaptFrame(frame : ARFrame) -> CGImage?
+    func adaptFrame(frame : ARFrame) -> CVPixelBuffer?
     {
         let imageBuffer = frame.capturedImage
         let imageSize = CGSize(width: CVPixelBufferGetWidth(imageBuffer), height: CVPixelBufferGetHeight(imageBuffer))
@@ -283,9 +290,10 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
         let transformedImage = frameImage.transformed(by: normalizeTransform.concatenating(flipTransform).concatenating(displayTransform).concatenating(toViewPortTransform)).cropped(to: viewport)
         // Renderizzo il frame croppato
         let context = CIContext(options: [CIContextOption.useSoftwareRenderer: false])
-        let frameCgImage = context.createCGImage(transformedImage, from: transformedImage.extent)
+        return transformedImage.pixelBuffer
+        /*let frameCgImage = context.createCGImage(transformedImage, from: transformedImage.extent)
         context.clearCaches()
-        return frameCgImage
+        return frameCgImage*/
     }
     
     func considerTriangle(_ classification : ARMeshClassification) -> Bool
@@ -405,7 +413,7 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
             let floorLevel = cameraWorldPosition.y-self!.chestHeight
             
             var indicesAdded : [UInt32: Int32] = [:]
-
+            
             //MARK: Filtro facce
             for i in 0..<meshGeometry.faces.count
             {
@@ -665,7 +673,7 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
         }
     }
     
-    func drawVisionRequestResults(_ request: VNRequest, frame: ARFrame)
+    func generateVisionBoundingBox(_ request: VNRequest, frame: ARFrame)
     {
         guard let predictions = request.results as? [VNRecognizedObjectObservation] else { return }
         
@@ -678,10 +686,9 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
             if(confidence>Constants.MIN_PREDICTION_CONFIDENCE)
             {
                 let width = viewport.width
-                let height = width * 16 / 9
-                let offsetY = (viewport.height - height) / 2
+                let height = viewport.height
                 let scale = CGAffineTransform.identity.scaledBy(x: width, y: height)
-                let transform = CGAffineTransform(scaleX: 1, y: -1).translatedBy(x: 0, y: -height-offsetY)
+                let transform = CGAffineTransform(scaleX: 1, y: -1).translatedBy(x: 0, y: -height)
                 let adjustedBoundingBox = boundingBox.applying(scale).applying(transform)
                 predictedBoundingBoxes.append((adjustedBoundingBox, prediction))
             }
@@ -793,9 +800,9 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
                 self!.knownObstacles.append(newObstacles[i] as! StoredObstacle)
             }
             
+            //MARK: Genero le bounding box tramite modello di object detection
             let pixelBuffer = frame.capturedImage
             let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: .right, options: [:])
-            self!.predictedBoundingBoxes.removeAll()
             do
             {
                 try handler.perform([self!.objectDetectionRequest])
@@ -805,13 +812,6 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
                 print(error)
             }
             
-            //MARK: Rimuovo le bounding box troppo piccole
-            self!.predictedBoundingBoxes = self!.predictedBoundingBoxes.filter
-            { (boundingBox, _) in
-                boundingBox.width>=Constants.MIN_BOUNDING_BOX_SIDE ||
-                    boundingBox.height>=Constants.MIN_BOUNDING_BOX_SIDE
-            }
-            
             //MARK: Classificazione degli ostacoli
             for obstacle in self!.knownObstacles
             {
@@ -819,7 +819,7 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
                 {
                     let obstacleRect = obstacle.getObstacleRect()
                     let boundingBox = predictedBoundingBox.0
-                    var prediction = predictedBoundingBox.1
+                    let prediction = predictedBoundingBox.1
                     
                     //Se c'è intersezione, allora forse la boundingbox
                     //descrive l'oggetto ritrovato dal lidar.
@@ -828,7 +828,7 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
                         let originX = obstacleRect.origin.x>boundingBox.origin.x ? obstacleRect.origin.x : boundingBox.origin.x
                         
                         let originY = obstacleRect.origin.y>boundingBox.origin.y ? obstacleRect.origin.y : boundingBox.origin.y
-                
+                        
                         let maxX = obstacleRect.maxX>boundingBox.maxX ?
                             boundingBox.maxX : obstacleRect.maxX
                         
@@ -859,8 +859,15 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
                         let ratio = intersectionArea/totalArea
                         if(ratio>=Constants.OVERLAP_THRESHOLD)
                         {
-                            prediction.confidence=prediction.confidence*Float(ratio)
-                            obstacle.addNewPrediction(newPrediction: prediction)
+                            let label = prediction.label
+                            let weight = prediction.confidence*100.0*Float(ratio)
+                            obstacle.addNewPrediction(label: label, weight: weight)
+                        }
+                        else
+                        {
+                            let label = Constants.OBSTACLE_DEFAULT_PREDICTION.label
+                            let weight = Constants.OBSTACLE_DEFAULT_PREDICTION.confidence
+                            obstacle.addNewPrediction(label: label, weight: weight)
                         }
                     }
                 }
@@ -872,13 +879,13 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
                 var i=0
                 for predictedBoundingBox in self!.predictedBoundingBoxes
                 {
-                    self!.tmp[i].show(rect: predictedBoundingBox.0, label: predictedBoundingBox.1.label, color: UIColor.green)
+                    self!.visionBoundingBoxes[i].show(rect: predictedBoundingBox.0, label: String(format:"%@: %f",predictedBoundingBox.1.label, predictedBoundingBox.1.confidence), color: UIColor.green)
                     i=i+1
                 }
                 
                 for i in stride(from: self!.predictedBoundingBoxes.count, through: Constants.MAX_OBSTACLE_NUMBER-1, by: 1)
                 {
-                    self!.tmp[i].hide()
+                    self!.visionBoundingBoxes[i].hide()
                 }
                 
                 i=0
@@ -886,7 +893,7 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
                 {
                     let label = obstacle.getMostFrequentPrediction()
                     let obstacleRect = obstacle.getObstacleRect()
-                    self!.boundingBoxes[i].show(rect: obstacleRect, label: label, color: UIColor.blue)
+                    self!.lidarBoundingBoxes[i].show(rect: obstacleRect, label: label, color: UIColor.blue)
                     i+=1
                 }
                 //MARK: Mostro in rosso le nuove bb
@@ -894,14 +901,15 @@ class ObstacleFinderViewController: UIViewController, ARSCNViewDelegate, UIGestu
                 {
                     let label = "new obstacle"
                     let obstacleRect = newObstacles[i].getObstacleRect()
-                    self!.boundingBoxes[i].show(rect: obstacleRect, label: label, color: UIColor.red)
+                    self!.lidarBoundingBoxes[i].show(rect: obstacleRect, label: label, color: UIColor.red)
                 }
                 //MARK: Disattivo le bounding box che non servono
                 for i in stride(from: self!.knownObstacles.count, to: Constants.MAX_OBSTACLE_NUMBER, by: 1)
                 {
-                    self!.boundingBoxes[i].hide()
+                    self!.lidarBoundingBoxes[i].hide()
                 }
             }
+            self!.predictedBoundingBoxes.removeAll()
             self!.classification=false
         }
     }
