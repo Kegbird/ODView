@@ -3,28 +3,22 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 52;
+	objectVersion = 50;
 	objects = {
 
 /* Begin PBXBuildFile section */
-		700166412764B7AC00D34D17 /* ImagePredictor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 700166402764B7AC00D34D17 /* ImagePredictor.swift */; };
 		70228E342757D554008D01E8 /* Prediction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70228E332757D554008D01E8 /* Prediction.swift */; };
 		702CDBB526F7778E0046972D /* ObstacleBoundingBoxView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 702CDBB426F7778E0046972D /* ObstacleBoundingBoxView.swift */; };
 		702EAB8726E8B95900287B1B /* StoredObstacle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 702EAB8626E8B95900287B1B /* StoredObstacle.swift */; };
-		703DDE7F2785D8D0000EB7DA /* ImageClassifier.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 703DDE7E2785D8D0000EB7DA /* ImageClassifier.mlmodel */; };
 		703DDE812785DD15000EB7DA /* YOLOv3.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 703DDE802785DD15000EB7DA /* YOLOv3.mlmodel */; };
-		706ABAA2278CA7DB004574BF /* yolov5n.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 706ABAA1278CA7DB004574BF /* yolov5n.mlmodel */; };
-		706ABAA6278CEC03004574BF /* yolov5s.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 706ABAA5278CEC03004574BF /* yolov5s.mlmodel */; };
 		709C57DE2722A38600A2BBEB /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 709C57DD2722A38600A2BBEB /* SceneDelegate.swift */; };
 		70AD0E99274D4A8A00580CD1 /* SetupViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70AD0E98274D4A8A00580CD1 /* SetupViewController.swift */; };
-		70BE1341278FD54300100A79 /* AudioKit in Frameworks */ = {isa = PBXBuildFile; productRef = 70BE1340278FD54300100A79 /* AudioKit */; };
 		70C70CB627063E0400ADCCAE /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70C70CB527063E0400ADCCAE /* Extensions.swift */; };
 		70C70CB827063FEC00ADCCAE /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70C70CB727063FEC00ADCCAE /* Constants.swift */; };
 		70ED4C6326CFA083006173D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70ED4C6226CFA083006173D9 /* AppDelegate.swift */; };
 		70ED4C6726CFA083006173D9 /* ObstacleFinderViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70ED4C6626CFA083006173D9 /* ObstacleFinderViewController.swift */; };
 		70ED4C6A26CFA083006173D9 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 70ED4C6826CFA083006173D9 /* Main.storyboard */; };
 		70ED4C6C26CFA085006173D9 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 70ED4C6B26CFA085006173D9 /* Assets.xcassets */; };
-		70ED4C6F26CFA085006173D9 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 70ED4C6D26CFA085006173D9 /* LaunchScreen.storyboard */; };
 		70ED4C7A26CFA085006173D9 /* ODViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70ED4C7926CFA085006173D9 /* ODViewTests.swift */; };
 		70ED4C8526CFA085006173D9 /* ODViewUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70ED4C8426CFA085006173D9 /* ODViewUITests.swift */; };
 		70F26828277E222B00F021A0 /* Obstacle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70F26827277E222B00F021A0 /* Obstacle.swift */; };
@@ -48,14 +42,10 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		700166402764B7AC00D34D17 /* ImagePredictor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImagePredictor.swift; sourceTree = "<group>"; };
 		70228E332757D554008D01E8 /* Prediction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Prediction.swift; sourceTree = "<group>"; };
 		702CDBB426F7778E0046972D /* ObstacleBoundingBoxView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ObstacleBoundingBoxView.swift; sourceTree = "<group>"; };
 		702EAB8626E8B95900287B1B /* StoredObstacle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoredObstacle.swift; sourceTree = "<group>"; };
-		703DDE7E2785D8D0000EB7DA /* ImageClassifier.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = ImageClassifier.mlmodel; sourceTree = "<group>"; };
 		703DDE802785DD15000EB7DA /* YOLOv3.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = YOLOv3.mlmodel; sourceTree = "<group>"; };
-		706ABAA1278CA7DB004574BF /* yolov5n.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = yolov5n.mlmodel; sourceTree = "<group>"; };
-		706ABAA5278CEC03004574BF /* yolov5s.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = yolov5s.mlmodel; sourceTree = "<group>"; };
 		709C57DD2722A38600A2BBEB /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		70AD0E98274D4A8A00580CD1 /* SetupViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupViewController.swift; sourceTree = "<group>"; };
 		70C70CB527063E0400ADCCAE /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
@@ -65,7 +55,6 @@
 		70ED4C6626CFA083006173D9 /* ObstacleFinderViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObstacleFinderViewController.swift; sourceTree = "<group>"; };
 		70ED4C6926CFA083006173D9 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		70ED4C6B26CFA085006173D9 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		70ED4C6E26CFA085006173D9 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		70ED4C7026CFA085006173D9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		70ED4C7526CFA085006173D9 /* ODViewTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ODViewTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		70ED4C7926CFA085006173D9 /* ODViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ODViewTests.swift; sourceTree = "<group>"; };
@@ -81,7 +70,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				70BE1341278FD54300100A79 /* AudioKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -105,9 +93,6 @@
 		703DDE7D2785D82D000EB7DA /* Models */ = {
 			isa = PBXGroup;
 			children = (
-				703DDE7E2785D8D0000EB7DA /* ImageClassifier.mlmodel */,
-				706ABAA1278CA7DB004574BF /* yolov5n.mlmodel */,
-				706ABAA5278CEC03004574BF /* yolov5s.mlmodel */,
 				703DDE802785DD15000EB7DA /* YOLOv3.mlmodel */,
 			);
 			path = Models;
@@ -116,13 +101,12 @@
 		70A72EC12726F53400217481 /* Utility */ = {
 			isa = PBXGroup;
 			children = (
-				700166402764B7AC00D34D17 /* ImagePredictor.swift */,
+				70F26827277E222B00F021A0 /* Obstacle.swift */,
 				702EAB8626E8B95900287B1B /* StoredObstacle.swift */,
 				70C70CB527063E0400ADCCAE /* Extensions.swift */,
 				702CDBB426F7778E0046972D /* ObstacleBoundingBoxView.swift */,
 				70C70CB727063FEC00ADCCAE /* Constants.swift */,
 				70228E332757D554008D01E8 /* Prediction.swift */,
-				70F26827277E222B00F021A0 /* Obstacle.swift */,
 			);
 			path = Utility;
 			sourceTree = "<group>";
@@ -139,7 +123,6 @@
 		70AD0E9B274D4F0400580CD1 /* Storyboard */ = {
 			isa = PBXGroup;
 			children = (
-				70ED4C6D26CFA085006173D9 /* LaunchScreen.storyboard */,
 				70ED4C6826CFA083006173D9 /* Main.storyboard */,
 			);
 			path = Storyboard;
@@ -215,7 +198,6 @@
 			);
 			name = ODView;
 			packageProductDependencies = (
-				70BE1340278FD54300100A79 /* AudioKit */,
 			);
 			productName = ODView;
 			productReference = 70ED4C5F26CFA083006173D9 /* ODView.app */;
@@ -289,7 +271,6 @@
 			);
 			mainGroup = 70ED4C5626CFA083006173D9;
 			packageReferences = (
-				70BE133F278FD54300100A79 /* XCRemoteSwiftPackageReference "AudioKit" */,
 			);
 			productRefGroup = 70ED4C6026CFA083006173D9 /* Products */;
 			projectDirPath = "";
@@ -307,7 +288,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				70ED4C6F26CFA085006173D9 /* LaunchScreen.storyboard in Resources */,
 				70ED4C6C26CFA085006173D9 /* Assets.xcassets in Resources */,
 				70ED4C6A26CFA083006173D9 /* Main.storyboard in Resources */,
 			);
@@ -339,14 +319,10 @@
 				70ED4C6726CFA083006173D9 /* ObstacleFinderViewController.swift in Sources */,
 				70ED4C6326CFA083006173D9 /* AppDelegate.swift in Sources */,
 				70C70CB627063E0400ADCCAE /* Extensions.swift in Sources */,
-				706ABAA6278CEC03004574BF /* yolov5s.mlmodel in Sources */,
 				70AD0E99274D4A8A00580CD1 /* SetupViewController.swift in Sources */,
 				70F26828277E222B00F021A0 /* Obstacle.swift in Sources */,
-				700166412764B7AC00D34D17 /* ImagePredictor.swift in Sources */,
-				703DDE7F2785D8D0000EB7DA /* ImageClassifier.mlmodel in Sources */,
 				709C57DE2722A38600A2BBEB /* SceneDelegate.swift in Sources */,
 				702CDBB526F7778E0046972D /* ObstacleBoundingBoxView.swift in Sources */,
-				706ABAA2278CA7DB004574BF /* yolov5n.mlmodel in Sources */,
 				70228E342757D554008D01E8 /* Prediction.swift in Sources */,
 				70C70CB827063FEC00ADCCAE /* Constants.swift in Sources */,
 			);
@@ -390,14 +366,6 @@
 				70ED4C6926CFA083006173D9 /* Base */,
 			);
 			name = Main.storyboard;
-			sourceTree = "<group>";
-		};
-		70ED4C6D26CFA085006173D9 /* LaunchScreen.storyboard */ = {
-			isa = PBXVariantGroup;
-			children = (
-				70ED4C6E26CFA085006173D9 /* Base */,
-			);
-			name = LaunchScreen.storyboard;
 			sourceTree = "<group>";
 		};
 /* End PBXVariantGroup section */
@@ -685,25 +653,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
-/* Begin XCRemoteSwiftPackageReference section */
-		70BE133F278FD54300100A79 /* XCRemoteSwiftPackageReference "AudioKit" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/AudioKit/AudioKit";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 5.3.0;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		70BE1340278FD54300100A79 /* AudioKit */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 70BE133F278FD54300100A79 /* XCRemoteSwiftPackageReference "AudioKit" */;
-			productName = AudioKit;
-		};
-/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 70ED4C5726CFA083006173D9 /* Project object */;
 }

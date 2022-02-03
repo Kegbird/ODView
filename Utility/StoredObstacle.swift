@@ -26,6 +26,8 @@ class StoredObstacle : Obstacle
         obstacle.minWorldPosition = minWorldPosition
         obstacle.maxWorldPosition = maxWorldPosition
         obstacle.pointNumber = pointNumber
+        obstacle.closestWorldPosition = closestWorldPosition
+        obstacle.distanceFromCamera = distanceFromCamera
         obstacle.predictionsTimeline = predictionsTimeline
         return obstacle
     }
@@ -36,7 +38,7 @@ class StoredObstacle : Obstacle
         predictionsTimeline.append((label, weight, currentTime))
     }
     
-    public func getMostFrequentPrediction() -> String
+    public func getBestPrediction() -> String
     {
         if(predictionsTimeline.count==0)
         {
@@ -82,7 +84,6 @@ class StoredObstacle : Obstacle
             return Constants.OBSTACLE_DEFAULT_PREDICTION.label
         }
         
-        var debugOutput = ""
         var bestPrediction = Constants.OBSTACLE_DEFAULT_PREDICTION.label
         var max : Float = 0.0
         var maxDifference : Float = 0.0
@@ -96,18 +97,6 @@ class StoredObstacle : Obstacle
                 max=weights[key]!
             }
         }
-        
-        debugOutput="Predictions:"+"\n"
-        
-        var labels = Array.init(weights.keys)
-        labels.sort()
-        
-        for label in labels
-        {
-            debugOutput=debugOutput+String("\(label):\(round(weights[label]!))%\n")
-        }
-        
-        debugOutput=debugOutput+"\n"+"Difference:\(round(maxDifference))\n"
         
         if(maxDifference>Constants.CONFIDENCE_MIN_DELTA)
         {
@@ -128,65 +117,10 @@ class StoredObstacle : Obstacle
     
     public func mergeWithOther(other : StoredObstacle)
     {
-        pointNumber=pointNumber+other.pointNumber
-        
         for prediction in other.predictionsTimeline
         {
             predictionsTimeline.append(prediction)
         }
-        
-        if(minPointBoundingBox==nil || minWorldPosition==nil
-           || maxPointBoundingBox==nil || maxWorldPosition==nil)
-        {
-            minWorldPosition = other.minWorldPosition
-            maxWorldPosition = other.maxWorldPosition
-            minPointBoundingBox = other.minPointBoundingBox
-            maxPointBoundingBox = other.maxPointBoundingBox
-            return
-        }
-        //Min world position
-        if(other.minWorldPosition.x<minWorldPosition.x)
-        {
-            minWorldPosition.x = other.minWorldPosition.x
-        }
-        if(other.minWorldPosition.y<minWorldPosition.y)
-        {
-            minWorldPosition.y = other.minWorldPosition.y
-        }
-        if(other.minWorldPosition.z<minWorldPosition.z)
-        {
-            minWorldPosition.z = other.minWorldPosition.z
-        }
-        //Max world position
-        if(other.maxWorldPosition.x>maxWorldPosition.x)
-        {
-            maxWorldPosition.x = other.maxWorldPosition.x
-        }
-        if(other.maxWorldPosition.y>maxWorldPosition.y)
-        {
-            maxWorldPosition.y = other.maxWorldPosition.y
-        }
-        if(other.maxWorldPosition.z>maxWorldPosition.z)
-        {
-            maxWorldPosition.z = other.maxWorldPosition.z
-        }
-        //Min bounding box
-        if(other.minPointBoundingBox.x<minPointBoundingBox.x)
-        {
-            minPointBoundingBox.x=other.minPointBoundingBox.x
-        }
-        if(other.minPointBoundingBox.y<minPointBoundingBox.y)
-        {
-            minPointBoundingBox.y=other.minPointBoundingBox.y
-        }
-        //Max bounding box
-        if(other.maxPointBoundingBox.x>maxPointBoundingBox.x)
-        {
-            maxPointBoundingBox.x=other.maxPointBoundingBox.x
-        }
-        if(other.maxPointBoundingBox.y>maxPointBoundingBox.y)
-        {
-            maxPointBoundingBox.y=other.maxPointBoundingBox.y
-        }
+        super.mergeWithOther(other: other)
     }
 }

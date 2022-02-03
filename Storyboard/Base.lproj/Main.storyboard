@@ -81,34 +81,45 @@
         <scene sceneID="tne-QT-ifu">
             <objects>
                 <viewController id="BYZ-38-t0r" customClass="ObstacleFinderViewController" customModule="ODView" customModuleProvider="target" sceneMemberID="viewController">
-                    <view key="view" contentMode="scaleToFill" id="dLS-A3-tLp">
-                        <rect key="frame" x="0.0" y="0.0" width="375" height="647"/>
-                        <autoresizingMask key="autoresizingMask"/>
+                    <view key="view" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="dLS-A3-tLp">
+                        <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
                         <subviews>
                             <arscnView multipleTouchEnabled="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="kjD-C7-NCn">
-                                <rect key="frame" x="0.0" y="0.0" width="375" height="647"/>
+                                <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
                                 <gestureRecognizers/>
-                                <connections>
-                                    <outletCollection property="gestureRecognizers" destination="46S-rN-uTp" appends="YES" id="SvT-9n-cNH"/>
-                                </connections>
                             </arscnView>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Sr6-Vd-3Dz" userLabel="Record Button">
+                                <rect key="frame" x="10" y="611" width="63" height="36"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="20"/>
+                                <state key="normal" title="Record"/>
+                                <connections>
+                                    <action selector="recordBtnTouchDown:" destination="BYZ-38-t0r" eventType="touchDown" id="Dyq-sR-5oC"/>
+                                </connections>
+                            </button>
                         </subviews>
-                        <viewLayoutGuide key="safeArea" id="5lF-OM-9Yk"/>
+                        <viewLayoutGuide key="safeArea" id="9sY-if-3MJ"/>
                         <color key="backgroundColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                        <gestureRecognizers/>
                         <constraints>
-                            <constraint firstItem="kjD-C7-NCn" firstAttribute="leading" secondItem="5lF-OM-9Yk" secondAttribute="leading" id="0Pr-cK-gYq"/>
-                            <constraint firstItem="5lF-OM-9Yk" firstAttribute="bottom" secondItem="kjD-C7-NCn" secondAttribute="bottom" id="eT2-uo-ua5"/>
-                            <constraint firstItem="5lF-OM-9Yk" firstAttribute="trailing" secondItem="kjD-C7-NCn" secondAttribute="trailing" id="nZg-j5-TpO"/>
-                            <constraint firstItem="kjD-C7-NCn" firstAttribute="top" secondItem="5lF-OM-9Yk" secondAttribute="top" id="s55-4e-eEC"/>
+                            <constraint firstItem="kjD-C7-NCn" firstAttribute="leading" secondItem="dLS-A3-tLp" secondAttribute="leading" id="0Pr-cK-gYq"/>
+                            <constraint firstAttribute="bottom" secondItem="kjD-C7-NCn" secondAttribute="bottom" id="eT2-uo-ua5"/>
+                            <constraint firstAttribute="trailing" secondItem="kjD-C7-NCn" secondAttribute="trailing" id="nZg-j5-TpO"/>
+                            <constraint firstItem="kjD-C7-NCn" firstAttribute="top" secondItem="dLS-A3-tLp" secondAttribute="top" id="s55-4e-eEC"/>
+                            <constraint firstItem="Sr6-Vd-3Dz" firstAttribute="leading" secondItem="kjD-C7-NCn" secondAttribute="leading" constant="10" id="sFI-Gy-cXM"/>
+                            <constraint firstItem="Sr6-Vd-3Dz" firstAttribute="bottom" secondItem="kjD-C7-NCn" secondAttribute="bottom" constant="-20" id="xhO-dF-L9e"/>
                         </constraints>
+                        <connections>
+                            <outletCollection property="gestureRecognizers" destination="Ppd-g0-ukg" appends="YES" id="lUx-ZI-YEo"/>
+                        </connections>
                     </view>
                     <navigationItem key="navigationItem" id="ttg-ZB-oPx"/>
                     <connections>
                         <outlet property="arscnView" destination="kjD-C7-NCn" id="TYJ-1p-NX1"/>
+                        <outlet property="recordButton" destination="Sr6-Vd-3Dz" id="aa8-uS-ldb"/>
                     </connections>
                 </viewController>
-                <tapGestureRecognizer id="46S-rN-uTp"/>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
+                <tapGestureRecognizer id="Ppd-g0-ukg"/>
             </objects>
             <point key="canvasLocation" x="32.799999999999997" y="4.9475262368815596"/>
         </scene>

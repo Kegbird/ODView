@@ -17,8 +17,7 @@ class Constants
     /*Bounding boxes whose screen area are lower than this value will not be
     classified.*/
     public static let AREA_THRESHOLD : CGFloat = 0.5
-    public static let OBSTACLE_MIN_CONFIDENCE : Float = 0.8
-    public static let OBSTACLE_DEFAULT_PREDICTION =  Prediction(label: "unknown", confidence: OBSTACLE_MIN_CONFIDENCE)
+    public static let OBSTACLE_DEFAULT_PREDICTION =  Prediction(label: "unknown", confidence: 80.0)
     public static let MIN_NUMBER_OF_PREDICTIONS : Int = 20
     public static let MAX_OBSTACLE_NUMBER : Int = 50
     public static let MERGE_DISTANCE : Float = 0.5

@@ -7,6 +7,8 @@ class Obstacle
     internal var maxPointBoundingBox : CGPoint!
     internal var minWorldPosition : SCNVector3!
     internal var maxWorldPosition : SCNVector3!
+    internal var closestWorldPosition : SCNVector3!
+    internal var distanceFromCamera : Double!
     internal var pointNumber : Int
     
     public init()
@@ -15,6 +17,8 @@ class Obstacle
         maxPointBoundingBox = nil
         minWorldPosition = nil
         maxWorldPosition = nil
+        closestWorldPosition = nil
+        distanceFromCamera = nil
         pointNumber = 0
     }
     
@@ -26,12 +30,19 @@ class Obstacle
         obstacle.minWorldPosition = minWorldPosition
         obstacle.maxWorldPosition = maxWorldPosition
         obstacle.pointNumber = pointNumber
+        obstacle.closestWorldPosition = closestWorldPosition
+        obstacle.distanceFromCamera = distanceFromCamera
         return obstacle
     }
     
     public func getPointNumber() -> Int
     {
         return pointNumber
+    }
+    
+    public func getDistance() -> Double
+    {
+        return distanceFromCamera
     }
     
     public func getMinPointBoundingBox() -> CGPoint
@@ -83,32 +94,47 @@ class Obstacle
     
     public func updateBoundaries(frame: ARFrame, viewportSize: CGSize, worldPoint: SCNVector3)
     {
+        //Calcolo la proiezione del vettore worldPoint (vertice del triangolo) sul vettore camera (la direzione
+        //della camera di arkit; la lunghezza di quel vettore rappresenta la distanza dall'ostacolo.
+        let cameraTransform = frame.camera.transform
+        let cameraWorldPosition = SCNVector3(cameraTransform.columns.3.x, cameraTransform.columns.3.y, cameraTransform.columns.3.z)
+        let viewVector = SCNVector3(-cameraTransform.columns.2.x, -cameraTransform.columns.2.y, -cameraTransform.columns.2.z)
+        let distance = SCNVector3(cameraWorldPosition.getSimd()-worldPoint.getSimd()).dotProduct(viewVector)
+        //Incremento il numero dei punti dell'ingombro
         pointNumber=pointNumber+1
-        
+        //Calcolo lo screen point del corrispondente punto mondo ed eseguo un clamp (nel caso non ricadano in vista)
         var screenPoint = frame.camera.projectPoint(worldPoint.getSimd(), orientation: .portrait, viewportSize: viewportSize)
         screenPoint = clampScreenPoint(screenPoint: screenPoint, viewportSize: viewportSize)
-        
+        //Se non ha punti associati, allora li inizializzo
         if(minPointBoundingBox==nil || minWorldPosition==nil
            || maxPointBoundingBox==nil || maxWorldPosition==nil)
         {
             minWorldPosition = worldPoint
             maxWorldPosition = worldPoint
+            distanceFromCamera = distance
+            closestWorldPosition = worldPoint
             minPointBoundingBox = screenPoint
             maxPointBoundingBox = screenPoint
             return
         }
-        
+        //Aggiorno la bounding box dell'ingombro
         if(worldPoint.x<minWorldPosition.x) { minWorldPosition.x = worldPoint.x }
         if(worldPoint.y<minWorldPosition.y) { minWorldPosition.y = worldPoint.y }
         if(worldPoint.z<minWorldPosition.z) { minWorldPosition.z = worldPoint.z }
         if(worldPoint.x>maxWorldPosition.x) { maxWorldPosition.x = worldPoint.x }
         if(worldPoint.y>maxWorldPosition.y) { maxWorldPosition.y = worldPoint.y }
         if(worldPoint.z>maxWorldPosition.z) { maxWorldPosition.z = worldPoint.z }
-        
+        //Aggiorno le coordinate schermo dell'ingombro
         if(screenPoint.x<minPointBoundingBox.x) { minPointBoundingBox.x = screenPoint.x }
         if(screenPoint.y<minPointBoundingBox.y) { minPointBoundingBox.y = screenPoint.y }
         if(screenPoint.x>maxPointBoundingBox.x) { maxPointBoundingBox.x = screenPoint.x }
         if(screenPoint.y>maxPointBoundingBox.y) { maxPointBoundingBox.y = screenPoint.y }
+        //Aggiorno il closest world point: se il nuovo punto è più vicino alla telefono, allora lo aggiorno
+        if(distance<distanceFromCamera)
+        {
+            closestWorldPosition = worldPoint
+            distanceFromCamera = distance
+        }
     }
     
     public func getObstacleRect() -> CGRect
@@ -131,49 +157,6 @@ class Obstacle
     {
         let obstacleRect = getObstacleRect()
         return obstacleRect.width*obstacleRect.height
-    }
-    
-    public func getWorldCornerPositions() -> [SCNVector3]
-    {
-        if(minPointBoundingBox==nil || minWorldPosition==nil
-           || maxPointBoundingBox==nil || maxWorldPosition==nil)
-        {
-            return []
-        }
-        var cornerWorldPositions : [SCNVector3] = []
-        //Primo spigolo
-        cornerWorldPositions.append(maxWorldPosition)
-        var otherCorner = SCNVector3(x: minWorldPosition.x, y: maxWorldPosition.y, z: maxWorldPosition.z)
-        //Secondo spigolo
-        cornerWorldPositions.append(otherCorner)
-        otherCorner.x=maxWorldPosition.x
-        otherCorner.y=minWorldPosition.y
-        otherCorner.z=maxWorldPosition.z
-        //Terzo spigolo
-        cornerWorldPositions.append(otherCorner)
-        otherCorner.x=maxWorldPosition.x
-        otherCorner.y=maxWorldPosition.y
-        otherCorner.z=minWorldPosition.z
-        //Quarto spigolo
-        cornerWorldPositions.append(otherCorner)
-        //Quinto spigolo
-        cornerWorldPositions.append(minWorldPosition)
-        otherCorner.x=maxWorldPosition.x
-        otherCorner.y=minWorldPosition.y
-        otherCorner.z=minWorldPosition.z
-        //Sesto spigolo
-        cornerWorldPositions.append(otherCorner)
-        otherCorner.x=minWorldPosition.x
-        otherCorner.y=maxWorldPosition.y
-        otherCorner.z=minWorldPosition.z
-        //Settimo spigolo
-        cornerWorldPositions.append(otherCorner)
-        otherCorner.x=minWorldPosition.x
-        otherCorner.y=minWorldPosition.y
-        otherCorner.z=maxWorldPosition.z
-        //Ottavo spigolo
-        cornerWorldPositions.append(otherCorner)
-        return cornerWorldPositions
     }
     
     public func areIntersected(other : Obstacle) -> Bool
@@ -272,18 +255,11 @@ class Obstacle
         {
             maxPointBoundingBox.y=other.maxPointBoundingBox.y
         }
-    }
-    
-    public func getDescription() -> String
-    {
-        var description : String = ""
-        
-        description = "Obstacle BB:\n"
-        description += String(format: "Min: %f, %f\n", minPointBoundingBox.x, minPointBoundingBox.y)
-        description += String(format: "Max: %f, %f\n", maxPointBoundingBox.x, maxPointBoundingBox.y)
-        description += "World pos:\n"
-        description += String(format: "Min: %f, %f, %f\n", minWorldPosition.x, minWorldPosition.y, minWorldPosition.z)
-        description += String(format: "Max: %f, %f, %f\n", maxWorldPosition.x, maxWorldPosition.y, maxWorldPosition.z)
-        return description
+        //Se il nuovo punto è più vicino alla telefono, allora lo aggiorno
+        if(distanceFromCamera>other.distanceFromCamera)
+        {
+            closestWorldPosition = other.closestWorldPosition
+            distanceFromCamera = other.distanceFromCamera
+        }
     }
 }
